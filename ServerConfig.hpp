@@ -16,6 +16,7 @@ public:
         std::string root;
         std::string exec;
         std::string upload_store;
+        std::string max_body;
         bool autoindex;
 
         Location() : autoindex(false) {}
@@ -25,6 +26,8 @@ public:
 
     std::string listen;
     std::string error_page;
+    std::string server_name;
+    std::string client_max_body_size;
     std::map<std::string, Location> locations;
 
     void print() const;
