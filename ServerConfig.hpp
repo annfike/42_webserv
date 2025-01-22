@@ -12,6 +12,7 @@ public:
     public:
         std::string path;
         std::string methods;
+        //std::vector<std::string> methods;
         std::string index;
         std::string root;
         std::string exec;

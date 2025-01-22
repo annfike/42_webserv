@@ -53,7 +53,8 @@ void Server::loop() {
         read_fds = master_set;  // Копируем master_set в read_fds
 
         // Ожидаем активности на одном из сокетов
-        int activity = select(max_fd + 1, &read_fds, nullptr, nullptr, nullptr);
+        //int activity = select(max_fd + 1, &read_fds, nullptr, nullptr, nullptr);
+        int activity = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
         if (activity < 0) {
             std::cerr << "Ошибка при вызове select!" << std::endl;
             continue;

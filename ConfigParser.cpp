@@ -12,9 +12,8 @@ void ConfigParser::trim(std::string &str) {
     else str.clear();
 }
 
-
 bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerConfig> &servers) {
-    std::ifstream file(filename);
+    std::ifstream file(filename.c_str());
     if (!file.is_open()) {
         std::cerr << "Не удалось открыть файл: " << filename << std::endl;
         return false;
@@ -29,11 +28,10 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
     while (std::getline(file, line)) {
         trim(line);
 
-        if (line.empty() || line[0] == '#') continue;  // Skip empty lines or comments
+        if (line.size() == 0 || line[0] == '#') continue;  // Skip empty lines or comments
 
         std::cout << "Processing line: " << line << std::endl;  // Debug: show current line
 
-        // Start of a new server block
         if (line.find("server {") != std::string::npos) {
             if (inside_server_block) {
                 std::cerr << "Unexpected 'server {' found, already inside a server block!" << std::endl;
@@ -45,15 +43,12 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
             continue;
         }
 
-        // End of the current server block
         if (line.find("}") != std::string::npos) {
             if (inside_location_block) {
-                // This closing brace is for the location block, not the server block
-                std::cout << "Exiting location block: " << current_location.path << std::endl;  // Debug
                 current_server.locations[current_location.path] = current_location;
-                current_location = ServerConfig::Location();  // Reset location
+                current_location = ServerConfig::Location();
                 inside_location_block = false;
-                continue;  // Skip the remaining part of this iteration and continue to the next line
+                continue;
             }
 
             if (!inside_server_block) {
@@ -61,60 +56,56 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                 return false;
             }
 
-            // Save the current location if it's not empty
-            if (!current_location.path.empty()) {
-                current_server.locations[current_location.path] = current_location;
-                std::cout << "Saved location: " << current_location.path << std::endl;  // Debug
-            }
-
-            // Push the current server if it has a valid 'listen' directive
-            if (!current_server.listen.empty()) {
+            if (current_server.listen.size() > 0) {
                 servers.push_back(current_server);
                 std::cout << "Saved server with listen: " << current_server.listen << std::endl;  // Debug
             }
 
-            // Reset for the next server
             inside_server_block = false;
             current_location = ServerConfig::Location();
             continue;
         }
 
-        // Parse server-level directives inside the server block
         if (inside_server_block) {
             if (line.find("listen") != std::string::npos) {
-                size_t pos = line.find(":");
-                current_server.listen = line.substr(pos + 1);
-                trim(current_server.listen);
+                size_t start = line.find(":");
+                size_t end = line.find(";");
+                if (start != std::string::npos && end != std::string::npos) {
+                    std::string listen_value = line.substr(start + 1, end - start - 1);
+                    trim(listen_value);
+                    current_server.listen = listen_value;
+                }
                 std::cout << "Parsed listen: " << current_server.listen << std::endl;  // Debug
             } else if (line.find("error_page") != std::string::npos) {
-                size_t pos = line.find(" ");  // Find the first space after "error_page"
-                if (pos != std::string::npos) {
-                    // Extract the value after the space
-                    current_server.error_page = line.substr(pos + 1);  // Everything after the first space
-                    trim(current_server.error_page);  // Remove leading/trailing spaces
+                size_t start = line.find(" ");
+                size_t end = line.find(";");
+                if (start != std::string::npos && end != std::string::npos) {
+                    current_server.error_page = line.substr(start + 1, end - start - 1);
+                    trim(current_server.error_page);
                     std::cout << "Parsed error_page: " << current_server.error_page << std::endl;  // Debug
                 }
             } else if (line.find("server_name") != std::string::npos) {
-                size_t pos = line.find(" ");  // Find the first space after "server_name"
-                if (pos != std::string::npos) {
-                    // Extract the value after the space
-                    current_server.server_name = line.substr(pos + 1);  // Everything after the first space
-                    trim(current_server.server_name);  // Remove leading/trailing spaces
-                    std::cout << "Parsed server_name: " << current_server.server_name << std::endl;  // Debug
+                size_t start = line.find(" ");
+                size_t end = line.find(";");
+                if (start != std::string::npos && end != std::string::npos) {
+                    current_server.server_name = line.substr(start + 1, end - start - 1);
+                    trim(current_server.server_name);
+                    std::cout << "Parsed server_name: " << current_server.error_page << std::endl;  // Debug
                 }
             } else if (line.find("client_max_body_size") != std::string::npos) {
-                size_t pos = line.find(" ");
-                current_server.client_max_body_size = line.substr(pos + 1);
-                trim(current_server.client_max_body_size);
-                std::cout << "Parsed client_max_body_size: " << current_server.client_max_body_size << std::endl;  // Debug
+                size_t start = line.find(" ");
+                size_t end = line.find(";");
+                if (start != std::string::npos && end != std::string::npos) {
+                    current_server.client_max_body_size = line.substr(start + 1, end - start - 1);
+                    trim(current_server.client_max_body_size);
+                    std::cout << "Parsed client_max_body_size: " << current_server.client_max_body_size << std::endl;  // Debug
+                }
             } else if (line.find("location") != std::string::npos) {
-                // Save the current location before starting a new one
-                if (!current_location.path.empty()) {
+                if (current_location.path.size() > 0) {
                     current_server.locations[current_location.path] = current_location;
                     std::cout << "Saved location before new one: " << current_location.path << std::endl;  // Debug
                 }
 
-                // Reset the current location and parse the path
                 current_location = ServerConfig::Location();
                 size_t path_pos = line.find("/");
                 if (path_pos != std::string::npos) {
@@ -123,21 +114,52 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                     std::cout << "Entered location block with path: " << current_location.path << std::endl;  // Debug
                 }
 
-                inside_location_block = true;  // Indicate that we are inside a location block
+                inside_location_block = true;
             }
 
-            // Parse location-level directives inside the location block
             if (inside_location_block) {
                 if (line.find("root") != std::string::npos) {
-                    size_t pos = line.find(":");
-                    current_location.root = line.substr(pos + 1);
-                    trim(current_location.root);
-                    std::cout << "Parsed root: " << current_location.root << std::endl;  // Debug
+                    size_t start = line.find_first_of("/");
+                    size_t end = line.find(";");
+                    if (start != std::string::npos && end != std::string::npos) {
+                        current_location.root = line.substr(start, end - start);
+                        trim(current_location.root);
+                        std::cout << "Parsed root: " << current_location.root << std::endl;  // Debug
+                    }
                 } else if (line.find("methods") != std::string::npos) {
-                    size_t pos = line.find(":");
-                    current_location.methods = line.substr(pos + 1);
-                    trim(current_location.methods);
-                    std::cout << "Parsed methods: " << current_location.methods << std::endl;  // Debug
+                    size_t pos = line.find_first_of(" \t"); // Находим первый пробел или табуляцию после "methods"
+                    if (pos != std::string::npos) {
+                            /*std::string methods_str = line.substr(pos);
+                            trim(methods_str); // Предполагается, что trim реализован для C++98
+
+                            std::istringstream iss(methods_str);
+                            std::string method;
+                            current_location.methods.clear();
+
+                            while (iss >> method) {
+                                // Удаляем точку с запятой в конце строки, если она есть
+                                if (!method.empty() && method[method.size() - 1] == ';') {
+                                    method.erase(method.size() - 1);
+                                }
+                                current_location.methods.push_back(method);
+                            }
+                            std::cout << "!! Parsed methods: ";
+
+                            for (size_t i = 0; i < current_location.methods.size(); ++i) {
+                                std::cout << current_location.methods[i];
+                                if (i < current_location.methods.size() - 1) {
+                                    std::cout << ", ";
+                                }
+                            }
+                            std::cout << std::endl; // Завершаем строку вывода
+                            */
+
+                        size_t pos = line.find(":");
+                        current_location.methods = line.substr(pos + 1);
+                        trim(current_location.methods);
+                        std::cout << "!!Parsed methods: " << current_location.methods << std::endl;// Debug
+                    }
+                    
                 } else if (line.find("autoindex") != std::string::npos) {
                     size_t pos = line.find(":");
                     std::string value = line.substr(pos + 1);
@@ -157,32 +179,29 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                     std::cout << "Parsed max_body: " << current_location.max_body << std::endl;  // Debug
                 }
 
-                // If a location block is complete (i.e., we've parsed all directives), reset the flag
                 if (line.find("}") != std::string::npos) {
                     if (inside_location_block) {
                         current_server.locations[current_location.path] = current_location;
-                        current_location = ServerConfig::Location();  // Reset location
+                        current_location = ServerConfig::Location();
                         std::cout << "Saved location and reset." << std::endl;  // Debug
-                        inside_location_block = false;  // Exit the location block
+                        inside_location_block = false;
                     }
                 }
             }
         }
     }
 
-    // Final save for the last location and server (if not already saved)
     if (inside_server_block) {
-        if (!current_location.path.empty()) {
+        if (current_location.path.size() > 0) {
             current_server.locations[current_location.path] = current_location;
             std::cout << "Saved last location: " << current_location.path << std::endl;  // Debug
         }
-        if (!current_server.listen.empty()) {
+        if (current_server.listen.size() > 0) {
             servers.push_back(current_server);
             std::cout << "Saved last server with listen: " << current_server.listen << std::endl;  // Debug
         }
     }
 
-    // Check for any mismatched brackets
     if (inside_server_block) {
         std::cerr << "Error: Missing '}' to close the server block." << std::endl;
         return false;
@@ -191,3 +210,6 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
     file.close();
     return true;
 }
+
+
+
