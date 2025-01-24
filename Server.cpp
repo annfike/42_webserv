@@ -27,7 +27,7 @@ void Server::parseConfig(const std::string &config) {
     }
 
     for (size_t i = 0; i < servers.size(); ++i) {
-        std::cout << "Сервер " << i << ":" << std::endl;
+        std::cout << "-----------------Сервер " << i << ":----------------------------" << std::endl;
         servers[i].print();
     }
 }

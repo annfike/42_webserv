@@ -127,17 +127,17 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                         //std::cout << "Parsed root: " << current_location.root << std::endl;  // Debug
                     }
                 } else if (line.find("methods") != std::string::npos) {
-                    size_t pos = line.find_first_of(" \t"); // Находим первый пробел или табуляцию после "methods"
-                    if (pos != std::string::npos) {
-                            std::string methods_str = line.substr(pos);
+                    size_t start = line.find_first_of(" \t"); // Находим первый пробел или табуляцию после "methods"
+                    size_t end = line.find(";");
+                    if (start != std::string::npos && end != std::string::npos) {
+                            std::string methods_str = line.substr(start, end - start);
                             trim(methods_str); 
                             std::istringstream iss(methods_str);
                             std::string method;
                             current_location.methods.clear();
-
                             while (iss >> method) {
-                                // Удаляем точку с запятой в конце строки, если она есть
-                                if (!method.empty() && method[method.size() - 1] == ';') {
+                                // Удаляем запят в конце строки, если она есть
+                                if (!method.empty() && method[method.size() - 1] == ',') {
                                     method.erase(method.size() - 1);
                                 }
                                 current_location.methods.push_back(method);
@@ -150,32 +150,33 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                                 }
                             }
                             std::cout << std::endl; */ // Debug
-
-                        /*
-                        size_t pos = line.find(":");
-                        current_location.methods = line.substr(pos + 1);
-                        trim(current_location.methods);
-                        std::cout << "!!Parsed methods: " << current_location.methods << std::endl;// Debug
-                        */
                     }
                     
                 } else if (line.find("autoindex") != std::string::npos) {
-                    size_t pos = line.find(":");
-                    std::string value = line.substr(pos + 1);
-                    trim(value);
-                    current_location.autoindex = (value == "on");
-                    //std::cout << "Parsed autoindex: " << current_location.autoindex << std::endl;  // Debug
+                    size_t start = line.find_first_of(" \t");
+                    size_t end = line.find(";");
+                    if (start != std::string::npos && end != std::string::npos) {
+                        std::string value = line.substr(start, end - start);
+                        trim(value);
+                        current_location.autoindex = (value == "on");
+                        //std::cout << "Parsed autoindex: " << current_location.autoindex << std::endl;  // Debug
+                    }
                 } else if (line.find("index") != std::string::npos) {
-                    size_t pos = line.find(":");
-                    current_location.index = line.substr(pos + 1);
-                    trim(current_location.index);
-                    //std::cout << "Parsed index: " << current_location.index << std::endl;  // Debug
+                    size_t start = line.find_first_of(" \t");
+                    size_t end = line.find(";");
+                    if (start != std::string::npos && end != std::string::npos) {
+                        current_location.index = line.substr(start, end - start);
+                        trim(current_location.index);
+                        //std::cout << "Parsed index: " << current_location.index << std::endl;  // Debug
+                    }
                 } else if (line.find("max_body") != std::string::npos) {
-                    size_t pos = line.find(":");
-                    std::string value = line.substr(pos + 1);
-                    trim(value);
-                    current_location.max_body = value;
-                    //std::cout << "Parsed max_body: " << current_location.max_body << std::endl;  // Debug
+                    size_t start = line.find_first_of(" \t");
+                    size_t end = line.find(";");
+                    if (start != std::string::npos && end != std::string::npos) {
+                        current_location.max_body = line.substr(start, end - start);
+                        trim(current_location.max_body);
+                        //std::cout << "Parsed max_body: " << current_location.max_body << std::endl;  // Debug
+                    }
                 }
 
                 if (line.find("}") != std::string::npos) {

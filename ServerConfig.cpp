@@ -1,5 +1,7 @@
 #include "ServerConfig.hpp"
 
+
+
 void ServerConfig::Location::print() const {
     std::cout << "  Path: " << path << std::endl;
     //std::cout << "  Methods: " << methods << std::endl;

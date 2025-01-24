@@ -21,7 +21,7 @@ public:
         std::string max_body;
         bool autoindex;
 
-        Location() : autoindex(false) {}
+        Location() : autoindex(true) {}
 
         void print() const;
     };
