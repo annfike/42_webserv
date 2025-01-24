@@ -2,7 +2,12 @@
 
 void ServerConfig::Location::print() const {
     std::cout << "  Path: " << path << std::endl;
-    std::cout << "  Methods: " << methods << std::endl;
+    //std::cout << "  Methods: " << methods << std::endl;
+    std::cout << "  Methods: ";
+    for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); ++it) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
     std::cout << "  Index: " << index << std::endl;
     std::cout << "  Root: " << root << std::endl;
     std::cout << "  Exec: " << exec << std::endl;

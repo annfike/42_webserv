@@ -30,16 +30,16 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
 
         if (line.size() == 0 || line[0] == '#') continue;  // Skip empty lines or comments
 
-        std::cout << "Processing line: " << line << std::endl;  // Debug: show current line
+        //std::cout << "Processing line: " << line << std::endl;  // Debug: show current line
 
         if (line.find("server {") != std::string::npos) {
             if (inside_server_block) {
                 std::cerr << "Unexpected 'server {' found, already inside a server block!" << std::endl;
-                return false;
             }
             inside_server_block = true;
+            //std::cout<<"-----------------------HERE-----------------------------------" << std::endl;
             current_server = ServerConfig();  // Reset the current server configuration
-            std::cout << "Entered server block." << std::endl;  // Debug
+            //std::cout << "Entered server block." << std::endl;  // Debug
             continue;
         }
 
@@ -58,7 +58,7 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
 
             if (current_server.listen.size() > 0) {
                 servers.push_back(current_server);
-                std::cout << "Saved server with listen: " << current_server.listen << std::endl;  // Debug
+                //std::cout << "Saved server with listen: " << current_server.listen << std::endl;  // Debug
             }
 
             inside_server_block = false;
@@ -75,14 +75,14 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                     trim(listen_value);
                     current_server.listen = listen_value;
                 }
-                std::cout << "Parsed listen: " << current_server.listen << std::endl;  // Debug
+                //std::cout << "Parsed listen: " << current_server.listen << std::endl;  // Debug
             } else if (line.find("error_page") != std::string::npos) {
                 size_t start = line.find(" ");
                 size_t end = line.find(";");
                 if (start != std::string::npos && end != std::string::npos) {
                     current_server.error_page = line.substr(start + 1, end - start - 1);
                     trim(current_server.error_page);
-                    std::cout << "Parsed error_page: " << current_server.error_page << std::endl;  // Debug
+                    //std::cout << "Parsed error_page: " << current_server.error_page << std::endl;  // Debug
                 }
             } else if (line.find("server_name") != std::string::npos) {
                 size_t start = line.find(" ");
@@ -90,7 +90,7 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                 if (start != std::string::npos && end != std::string::npos) {
                     current_server.server_name = line.substr(start + 1, end - start - 1);
                     trim(current_server.server_name);
-                    std::cout << "Parsed server_name: " << current_server.error_page << std::endl;  // Debug
+                    //std::cout << "Parsed server_name: " << current_server.error_page << std::endl;  // Debug
                 }
             } else if (line.find("client_max_body_size") != std::string::npos) {
                 size_t start = line.find(" ");
@@ -98,12 +98,12 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                 if (start != std::string::npos && end != std::string::npos) {
                     current_server.client_max_body_size = line.substr(start + 1, end - start - 1);
                     trim(current_server.client_max_body_size);
-                    std::cout << "Parsed client_max_body_size: " << current_server.client_max_body_size << std::endl;  // Debug
+                    //std::cout << "Parsed client_max_body_size: " << current_server.client_max_body_size << std::endl;  // Debug
                 }
             } else if (line.find("location") != std::string::npos) {
                 if (current_location.path.size() > 0) {
                     current_server.locations[current_location.path] = current_location;
-                    std::cout << "Saved location before new one: " << current_location.path << std::endl;  // Debug
+                    //std::cout << "Saved location before new one: " << current_location.path << std::endl;  // Debug
                 }
 
                 current_location = ServerConfig::Location();
@@ -111,7 +111,7 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                 if (path_pos != std::string::npos) {
                     current_location.path = line.substr(path_pos);
                     trim(current_location.path);
-                    std::cout << "Entered location block with path: " << current_location.path << std::endl;  // Debug
+                    //std::cout << "Entered location block with path: " << current_location.path << std::endl;  // Debug
                 }
 
                 inside_location_block = true;
@@ -124,14 +124,13 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                     if (start != std::string::npos && end != std::string::npos) {
                         current_location.root = line.substr(start, end - start);
                         trim(current_location.root);
-                        std::cout << "Parsed root: " << current_location.root << std::endl;  // Debug
+                        //std::cout << "Parsed root: " << current_location.root << std::endl;  // Debug
                     }
                 } else if (line.find("methods") != std::string::npos) {
                     size_t pos = line.find_first_of(" \t"); // Находим первый пробел или табуляцию после "methods"
                     if (pos != std::string::npos) {
-                            /*std::string methods_str = line.substr(pos);
-                            trim(methods_str); // Предполагается, что trim реализован для C++98
-
+                            std::string methods_str = line.substr(pos);
+                            trim(methods_str); 
                             std::istringstream iss(methods_str);
                             std::string method;
                             current_location.methods.clear();
@@ -143,21 +142,21 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                                 }
                                 current_location.methods.push_back(method);
                             }
-                            std::cout << "!! Parsed methods: ";
-
+                            /*std::cout << "!! Parsed methods: ";
                             for (size_t i = 0; i < current_location.methods.size(); ++i) {
                                 std::cout << current_location.methods[i];
                                 if (i < current_location.methods.size() - 1) {
                                     std::cout << ", ";
                                 }
                             }
-                            std::cout << std::endl; // Завершаем строку вывода
-                            */
+                            std::cout << std::endl; */ // Debug
 
+                        /*
                         size_t pos = line.find(":");
                         current_location.methods = line.substr(pos + 1);
                         trim(current_location.methods);
                         std::cout << "!!Parsed methods: " << current_location.methods << std::endl;// Debug
+                        */
                     }
                     
                 } else if (line.find("autoindex") != std::string::npos) {
@@ -165,25 +164,25 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                     std::string value = line.substr(pos + 1);
                     trim(value);
                     current_location.autoindex = (value == "on");
-                    std::cout << "Parsed autoindex: " << current_location.autoindex << std::endl;  // Debug
+                    //std::cout << "Parsed autoindex: " << current_location.autoindex << std::endl;  // Debug
                 } else if (line.find("index") != std::string::npos) {
                     size_t pos = line.find(":");
                     current_location.index = line.substr(pos + 1);
                     trim(current_location.index);
-                    std::cout << "Parsed index: " << current_location.index << std::endl;  // Debug
+                    //std::cout << "Parsed index: " << current_location.index << std::endl;  // Debug
                 } else if (line.find("max_body") != std::string::npos) {
                     size_t pos = line.find(":");
                     std::string value = line.substr(pos + 1);
                     trim(value);
                     current_location.max_body = value;
-                    std::cout << "Parsed max_body: " << current_location.max_body << std::endl;  // Debug
+                    //std::cout << "Parsed max_body: " << current_location.max_body << std::endl;  // Debug
                 }
 
                 if (line.find("}") != std::string::npos) {
                     if (inside_location_block) {
                         current_server.locations[current_location.path] = current_location;
                         current_location = ServerConfig::Location();
-                        std::cout << "Saved location and reset." << std::endl;  // Debug
+                        //std::cout << "Saved location and reset." << std::endl;  // Debug
                         inside_location_block = false;
                     }
                 }
@@ -194,11 +193,11 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
     if (inside_server_block) {
         if (current_location.path.size() > 0) {
             current_server.locations[current_location.path] = current_location;
-            std::cout << "Saved last location: " << current_location.path << std::endl;  // Debug
+            //std::cout << "Saved last location: " << current_location.path << std::endl;  // Debug
         }
         if (current_server.listen.size() > 0) {
             servers.push_back(current_server);
-            std::cout << "Saved last server with listen: " << current_server.listen << std::endl;  // Debug
+            //std::cout << "Saved last server with listen: " << current_server.listen << std::endl;  // Debug
         }
     }
 

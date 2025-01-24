@@ -1,10 +1,11 @@
 #include "Server.hpp"
 #include <stdexcept>
-#include <string.h>
+#include <string>
 #include <sys/select.h>
 #include <unistd.h>
 #include <iostream>
 #include <cstring>
+#include <stdlib.h>
 
 
 Server::Server(const std::string &config) {
@@ -31,15 +32,15 @@ void Server::parseConfig(const std::string &config) {
     }
 }
 
-#include <sys/select.h>
-#include <unistd.h>
-#include <iostream>
-#include <cstring>
-
 void Server::loop() {
     // Создаем и настраиваем сокет с использованием SocketManager
-    socketManager.bindAndListen(8081);  // Пример использования порта 8081
-
+    for (size_t i = 0; i < servers.size(); i++)
+    {
+        //socketManager.bindAndListen(servers[i].listen);  // Пример использования порта 8081
+    }
+    socketManager.bindAndListen(8081);
+    //socketManager.bindAndListen(8082);
+   
     fd_set master_set;  // Множество файловых дескрипторов
     fd_set read_fds;    // Множество файловых дескрипторов, готовых для чтения
     int max_fd;         // Максимальный дескриптор для select

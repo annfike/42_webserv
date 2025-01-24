@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <vector>
 
 //будет содержать настройки сервера
 class ServerConfig {
@@ -11,8 +12,8 @@ public:
     class Location {
     public:
         std::string path;
-        std::string methods;
-        //std::vector<std::string> methods;
+        //std::string methods;
+        std::vector<std::string> methods;
         std::string index;
         std::string root;
         std::string exec;
