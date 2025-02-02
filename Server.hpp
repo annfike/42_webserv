@@ -8,15 +8,19 @@
 
 class Server {
 public:
-    Server(const std::string &config);
-    ~Server();
-    void loop();
+	Server();
+	Server(const Server& s);
+	Server(const std::string &config);
+	~Server();
+	Server*& operator=(const Server& s);
+
+	void loop();
 
 private:
-    std::vector<ServerConfig> servers;
-    SocketManager socketManager;
+	std::vector<ServerConfig> servers;
+	SocketManager socketManager;
 
-    void parseConfig(const std::string &config);
+	void parseConfig(const std::string &config);
 };
 
 #endif // SERVER_HPP
