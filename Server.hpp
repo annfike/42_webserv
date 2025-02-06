@@ -5,6 +5,12 @@
 #include "ServerConfig.hpp"
 #include "SocketManager.hpp"
 #include <vector>
+#include <stdexcept>
+#include <string>
+#include <unistd.h>
+#include <iostream>
+#include <cstring>
+#include <stdlib.h>
 
 class Server {
 public:
@@ -21,6 +27,7 @@ private:
 	SocketManager socketManager;
 
 	void parseConfig(const std::string &config);
+	void execRead(int fd, std::vector<int>& deletefds);
 };
 
 #endif // SERVER_HPP
