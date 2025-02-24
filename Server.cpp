@@ -56,8 +56,8 @@ void Server::execRead(int fd, std::vector<int>& deletefds)
 	//TODO if (connection == close)
 	//	close(fd);
 
-	int f = open("web1/index.html", O_RDONLY);
-	if (!f)
+	std::ifstream file("web1/index.html");
+	if (!file)
 		std::cerr << "Ошибка при чтении file!" << std::endl;
 
 	// Формирование HTTP-ответа
@@ -70,10 +70,13 @@ void Server::execRead(int fd, std::vector<int>& deletefds)
 		"HTTP/1.1 200 OK\r\n"
 		"Content-Type: text/html\r\n"
 		"Connection: close\r\n\r\n";
-	bytes_read = recv(f, buffer, sizeof(buffer) - 1, MSG_DONTWAIT);
-	buffer[bytes_read] = '\0';
+	
+	//bytes_read = read(f, buffer, sizeof(buffer) - 1);
+	//bytes_read = recv(f, buffer, sizeof(buffer) - 1, MSG_DONTWAIT);
+	file.read(buffer, sizeof(buffer));
+	buffer[file.gcount()] = '\0';
 	std::cerr << buffer;
-	close(f);
+	file.close();
 	// Отправка ответа клиенту
 	//if (false)
 	send(fd, http_response, strlen(http_response), MSG_DONTWAIT | MSG_NOSIGNAL);
