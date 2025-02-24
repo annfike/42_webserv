@@ -68,12 +68,15 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
 
         if (inside_server_block) {
             if (line.find("listen") != std::string::npos) {
-                size_t start = line.find(":");
-                size_t end = line.find(";");
-                if (start != std::string::npos && end != std::string::npos) {
-                    std::string listen_value = line.substr(start + 1, end - start - 1);
-                    trim(listen_value);
-                    current_server.listen = listen_value;
+                size_t start = line.find("listen") + 6;
+                size_t colon_pos = line.find(":", start);
+                if (start != std::string::npos && colon_pos != std::string::npos) {
+                    std::string ip_address = line.substr(start, colon_pos - start);
+                    std::string port = line.substr(colon_pos + 1);
+                    trim(ip_address);
+                    trim(port);
+                    current_server.listen_IP = ip_address;
+                    current_server.listen = port;
                 }
                 //std::cout << "Parsed listen: " << current_server.listen << std::endl;  // Debug
             } else if (line.find("error_page") != std::string::npos) {

@@ -27,6 +27,7 @@ public:
     };
 
     std::string listen;
+    std::string listen_IP;
     std::string error_page;
     std::string server_name;
     std::string client_max_body_size;
