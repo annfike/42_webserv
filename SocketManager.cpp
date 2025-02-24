@@ -1,12 +1,24 @@
 #include "SocketManager.hpp"
+#include <fstream>
 
 SocketManager::SocketManager()
 {
 }
 
+SocketManager::SocketManager(const SocketManager &s)
+{
+	(*this) = s;
+}
+
 SocketManager::~SocketManager()
 {
 	closeSockets();
+}
+
+SocketManager &SocketManager::operator=(const SocketManager &s)
+{
+	*this = s;
+	return *this;
 }
 
 struct pollfd getPollFd(int fd)
@@ -29,6 +41,7 @@ void SocketManager::bindSocket(int port)
 	if (socket_fd == -1)
 		throw std::runtime_error("Ошибка при создании сокета");
 
+	//allow reuse closed socket
 	int opt = 1;
 	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 	{
@@ -37,7 +50,7 @@ void SocketManager::bindSocket(int port)
 		close(socket_fd);
 		return;
 	}
-	
+
 	struct sockaddr_in server_addr = {};
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(port);
@@ -71,7 +84,10 @@ bool SocketManager::getActive(std::vector<struct pollfd>& fds)
 	std::cerr << "poll\n";
 	int activity = poll(fds.data(), fds.size(), -1);
 	if (activity <= 0)
+	{
+		std::cerr << activity << " poll fail\n";
 		return false;
+	}
 	std::cerr << activity << "poll true\n";
 	return true;
 
@@ -110,13 +126,6 @@ struct pollfd SocketManager::acceptConnection(struct pollfd socket)
 
 	std::cout << "Новое соединение принято (" << client_fd << ")" << std::endl;
 	return getPollFd(client_fd);
-}
-
-void SocketManager::closeFd(int fd)
-{
-	close(fd);  // Закрытие соединения с клиентом
-	//FD_CLR(fd, &master_set);  // Удаляем клиентский сокет из master_set
-	//std::remove(reads.begin(), reads.end(), fd);
 }
 
 bool SocketManager::isSocket(int fd)

@@ -22,10 +22,8 @@ public:
 	SocketManager& operator=(const SocketManager& s);
 	
 	void bindSocket(int port);
-	int getServerFd();
 	bool getActive(std::vector<struct pollfd>& fds);
 	struct pollfd acceptConnection(struct pollfd socket);
-	void closeFd(int fd);
 	bool isSocket(int fd);
 	void closeSockets();
 	std::vector<struct pollfd> sockets;

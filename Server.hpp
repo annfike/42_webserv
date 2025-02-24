@@ -11,6 +11,7 @@
 #include <iostream>
 #include <cstring>
 #include <stdlib.h>
+#include <signal.h>
 
 class Server {
 public:
@@ -28,6 +29,7 @@ private:
 
 	void parseConfig(const std::string &config);
 	void execRead(int fd, std::vector<int>& deletefds);
+	void execWrite(int fd, std::vector<int>& deletefds);
 };
 
 #endif // SERVER_HPP

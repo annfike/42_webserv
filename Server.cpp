@@ -5,24 +5,24 @@ Server::Server(const std::string &config)
 	parseConfig(config);
 }
 
-Server::~Server() 
+Server::~Server()
 {
 	socketManager.closeSockets();
 }
 
 void Server::parseConfig(const std::string &config)
 {
-	if (!ConfigParser::parseConfig(config, servers)) 
+	if (!ConfigParser::parseConfig(config, servers))
 	{
 		throw std::runtime_error("Ошибка при парсинге конфигурационного файла");
 	}
 
-	if (servers.empty()) 
+	if (servers.empty())
 	{
 		throw std::runtime_error("Не найдено ни одного сервера в конфигурационном файле");
 	}
 
-	for (size_t i = 0; i < servers.size(); ++i) 
+	for (size_t i = 0; i < servers.size(); ++i)
 	{
 		std::cout << "-----------------Сервер " << i << ":----------------------------" << std::endl;
 		servers[i].print();
@@ -33,16 +33,17 @@ void Server::execRead(int fd, std::vector<int>& deletefds)
 {
 	std::cerr << fd << "/*/*/*/*/*/*/*/*\n";
 	// Чтение HTTP-запроса от клиента
-	char buffer[1024];
+	char buffer[2049];
 	ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
-	if (bytes_read <= 0) 
+
+	if (bytes_read <= 0)
 	{
 		// Если ошибка при чтении или клиент закрыл соединение
 		if (bytes_read == 0) 
 			std::cout << "Клиент отключился" << std::endl;
-		else 
+		else
 			std::cerr << "Ошибка при чтении данных!" << std::endl;
-		socketManager.closeFd(fd);
+		close(fd);
 		deletefds.push_back(fd);
 		return;
 	}
@@ -51,7 +52,10 @@ void Server::execRead(int fd, std::vector<int>& deletefds)
 	std::cout << "Получен запрос: \n" << buffer << std::endl;
 
 	//TODO need to find a right website
-	
+
+	//TODO if (connection == close)
+	//	close(fd);
+
 	int f = open("web1/index.html", O_RDONLY);
 	if (!f)
 		std::cerr << "Ошибка при чтении file!" << std::endl;
@@ -66,15 +70,21 @@ void Server::execRead(int fd, std::vector<int>& deletefds)
 		"HTTP/1.1 200 OK\r\n"
 		"Content-Type: text/html\r\n"
 		"Connection: close\r\n\r\n";
-	bytes_read = read(f, buffer, sizeof(buffer) - 1);
+	bytes_read = recv(f, buffer, sizeof(buffer) - 1, MSG_DONTWAIT);
 	buffer[bytes_read] = '\0';
 	std::cerr << buffer;
 	close(f);
 	// Отправка ответа клиенту
 	//if (false)
-	write(fd, http_response, strlen(http_response));
-	write(fd, buffer, strlen(buffer));
-	socketManager.closeFd(fd);
+	send(fd, http_response, strlen(http_response), MSG_DONTWAIT | MSG_NOSIGNAL);
+	send(fd, buffer, strlen(buffer), MSG_DONTWAIT | MSG_NOSIGNAL);
+	close(fd);
+	deletefds.push_back(fd);
+}
+
+void Server::execWrite(int fd, std::vector<int> &deletefds)
+{
+	close(fd);
 	deletefds.push_back(fd);
 }
 
@@ -84,7 +94,7 @@ void print(std::vector<struct pollfd> p)
 	{
 		std::cerr << p[i].fd << " - ";
 		std::cerr << p[i].events << " - ";
-		std::cerr << p[i].revents << ", ";
+		std::cerr << p[i].revents << ",   ";
 	}
 	std::cerr << std::endl;
 }
@@ -97,9 +107,8 @@ void Server::loop()
 		//TODO nuzno tolko uniq serv+port
 		socketManager.bindSocket(std::atoi(servers[i].listen.c_str()));
 	}
-	// Пример использования порта 8081
-	socketManager.bindSocket(8081);
-	socketManager.bindSocket(8083);
+	// Пример использования порта 8080
+	socketManager.bindSocket(8080);
 
 	std::cerr << "// ********************************************************";
 
@@ -115,7 +124,7 @@ void Server::loop()
 
 		for (int i = 0; i < (int)fds.size(); i++)
 		{
-			std::cerr << fds.size() << " razmer\n";
+			//sockets fds
 			if (socketManager.isSocket(fds[i].fd))
 			{
 				if (fds[i].revents & (POLLIN | POLLOUT))
@@ -127,17 +136,18 @@ void Server::loop()
 				}
 				continue;
 			}
+
 			print(fds);
+			//TODO read fds
 			if (fds[i].revents & POLLIN)
 			{
 				execRead(fds[i].fd, deletefds);
 			}
 
+			//TODO write fds
 			if (fds[i].revents & POLLOUT)
 			{
-				//execRead(fds[i].fd);
-				close(fds[i].fd);
-				deletefds.push_back(fds[i].fd);
+				execWrite(fds[i].fd, deletefds);
 			}
 		}
 		fds.insert(fds.end(), newfds.begin(), newfds.end());
