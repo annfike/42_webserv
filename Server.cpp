@@ -1,5 +1,6 @@
 #include "Server.hpp"
 
+
 Server::Server(const std::string &config) 
 {
 	parseConfig(config);
@@ -50,6 +51,15 @@ void Server::execRead(int fd, std::vector<int>& deletefds)
 
 	buffer[bytes_read] = '\0'; // Завершаем строку
 	std::cout << "Получен запрос: \n" << buffer << std::endl;
+
+	// Request & Response
+	HttpRequestParser request;
+	request.parse(buffer);
+	request.printRequest();
+	//Response response(Response::FILE, 0, "", "", "/var/www/example");
+	Response response = response.handleRequest(request.getMethod(), request.getUrl(), request.getBody().size());
+    response.print();
+
 
 	//TODO need to find a right website
 

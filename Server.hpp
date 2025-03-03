@@ -4,6 +4,8 @@
 #include "ConfigParser.hpp"
 #include "ServerConfig.hpp"
 #include "SocketManager.hpp"
+#include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 #include <vector>
 #include <stdexcept>
 #include <string>
