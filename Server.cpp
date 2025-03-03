@@ -108,10 +108,10 @@ void Server::loop()
 	for (size_t i = 0; i < servers.size(); i++)
 	{
 		//TODO nuzno tolko uniq serv+port
-		socketManager.bindSocket(std::atoi(servers[i].listen.c_str()));
+		socketManager.bindSocket(servers[i].listen_IP, std::atoi(servers[i].listen.c_str()));
 	}
 	// Пример использования порта 8080
-	socketManager.bindSocket(8080);
+	socketManager.bindSocket("0.0.0.0", 8080);
 
 	std::cerr << "// ********************************************************";
 

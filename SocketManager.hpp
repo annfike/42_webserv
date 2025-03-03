@@ -21,7 +21,7 @@ public:
 	~SocketManager();
 	SocketManager& operator=(const SocketManager& s);
 	
-	void bindSocket(int port);
+	void bindSocket(std::string ip, int port);
 	bool getActive(std::vector<struct pollfd>& fds);
 	struct pollfd acceptConnection(struct pollfd socket);
 	bool isSocket(int fd);

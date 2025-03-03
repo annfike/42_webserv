@@ -29,7 +29,7 @@ struct pollfd getPollFd(int fd)
 	return pfd;
 }
 
-void SocketManager::bindSocket(int port)
+void SocketManager::bindSocket(std::string ip, int port)
 {
 	std::vector<int>::iterator it = std::find(ports.begin(), ports.end(), port);
 	if (it != ports.end())
