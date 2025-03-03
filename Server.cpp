@@ -30,7 +30,7 @@ void Server::parseConfig(const std::string &config)
 	}
 }
 
-void Server::execRead(int fd, std::vector<int>& deletefds)
+void Server::execRead(const ServerConfig& config, int fd, std::vector<int>& deletefds)
 {
 	std::cerr << fd << "/*/*/*/*/*/*/*/*\n";
 	// Чтение HTTP-запроса от клиента
@@ -57,7 +57,7 @@ void Server::execRead(int fd, std::vector<int>& deletefds)
 	request.parse(buffer);
 	request.printRequest();
 	//Response response(Response::FILE, 0, "", "", "/var/www/example");
-	Response response = response.handleRequest(request.getMethod(), request.getUrl(), request.getBody().size());
+	Response response = response.handleRequest(config, request.getMethod(), request.getUrl(), request.getBody().size());
     response.print();
 
 
@@ -154,7 +154,7 @@ void Server::loop()
 			//TODO read fds
 			if (fds[i].revents & POLLIN)
 			{
-				execRead(fds[i].fd, deletefds);
+				execRead(servers[0], fds[i].fd, deletefds);
 			}
 
 			//TODO write fds

@@ -31,6 +31,7 @@ struct pollfd getPollFd(int fd)
 
 void SocketManager::bindSocket(std::string ip, int port)
 {
+	(void)ip;
 	std::vector<int>::iterator it = std::find(ports.begin(), ports.end(), port);
 	if (it != ports.end())
 		return;

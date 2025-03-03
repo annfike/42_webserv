@@ -112,7 +112,12 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                 current_location = ServerConfig::Location();
                 size_t path_pos = line.find("/");
                 if (path_pos != std::string::npos) {
-                    current_location.path = line.substr(path_pos);
+                    size_t end = line.find("{");
+                    if (end == std::string::npos)
+                        current_location.path = line.substr(path_pos);
+                    else
+                        current_location.path = line.substr(path_pos, end - path_pos);
+
                     trim(current_location.path);
                     //std::cout << "Entered location block with path: " << current_location.path << std::endl;  // Debug
                 }

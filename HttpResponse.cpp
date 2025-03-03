@@ -23,35 +23,38 @@ void Response::print() const {
 }
 
 
-bool isMethodAllowed(const std::string& method) {
+/*bool isMethodAllowed(const std::string& method) {
     // проверка допустимости метода
     (void)method;
     return false;
-}
-/* Как добраться до конфига? у нас фд в execRead
-Функция для проверки допустимости метода 
-bool isMethodAllowed(const std::string& method, const ServerConfig& config, const std::string& url) {
+}*/
+
+//Как добраться до конфига? у нас фд в execRead
+//Функция для проверки допустимости метода 
+bool isMethodAllowed(const ServerConfig& config, const std::string& method, const std::string& url) {
     // Ищем Location, соответствующий URL
     for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
          it != config.locations.end(); ++it) {
+            std::cerr << "location ==========================================";
         const std::string& locationPath = it->first;
         const ServerConfig::Location& location = it->second;
-
         // Проверяем, соответствует ли URL текущему Location
-        if (url.find(locationPath) == 0) {
+        if (url.find(locationPath) != std::string::npos) {
+
             // Проверяем, есть ли метод в списке разрешенных методов
             for (std::vector<std::string>::const_iterator methodIt = location.methods.begin();
                  methodIt != location.methods.end(); ++methodIt) {
+                    std::cerr << *methodIt << "+++";
                 if (*methodIt == method) {
                     return true; // Метод разрешен
                 }
-            }
+            }            
             return false; // Метод не разрешен
         }
     }
     // Если Location для URL не найден, возвращаем false
     return false;
-}*/
+}
 
 bool isBodySizeValid(size_t size) {
     // проверка размера тела запроса
@@ -100,8 +103,8 @@ bool isCGIExtension(const std::string& extension) {
     return false;
 }
 
-Response Response::handleRequest(const std::string& method, const std::string& url, size_t bodySize) {
-    if (!isMethodAllowed(method)) {
+Response Response::handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize) {
+    if (!isMethodAllowed(config, method, url)) {
         return Response(Response::ERROR, 405, "Method Not Allowed");
     }
 

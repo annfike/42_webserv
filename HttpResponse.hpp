@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include "ServerConfig.hpp"
 
 class Response {
 public:
@@ -15,7 +16,7 @@ public:
 
     Response(Type type, int code = 0, const std::string& message = "", const std::string& destination = "", const std::string& filePath = "");
     void print() const;
-    Response handleRequest(const std::string& method, const std::string& url, size_t bodySize);
+    Response handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize);
 
 private:
     Type type;
