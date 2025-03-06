@@ -186,6 +186,34 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                         //std::cout << "Parsed max_body: " << current_location.max_body << std::endl;  // Debug
                     }
                 }
+                else if (line.find("upload_store") != std::string::npos) {
+                    size_t start = line.find_first_of(" \t");
+                    size_t end = line.find(";");
+                    if (start != std::string::npos && end != std::string::npos) {
+                        current_location.upload_store = line.substr(start, end - start);
+                        trim(current_location.upload_store);
+                        //std::cout << "Parsed upload_store: " << current_location.upload_store << std::endl;  // Debug
+                    }
+                }
+                else if (line.find("exec") != std::string::npos) {
+                    size_t start = line.find_first_of(" \t");
+                    size_t end = line.find(";");
+                    if (start != std::string::npos && end != std::string::npos) {
+                        current_location.exec = line.substr(start, end - start);
+                        trim(current_location.exec);
+                        //std::cout << "Parsed exec: " << current_location.exec << std::endl;  // Debug
+                    }
+                }
+                else if (line.find("return") != std::string::npos) {
+                    size_t start = line.find_first_of(" \t");
+                    size_t end = line.find(";");
+                    if (start != std::string::npos && end != std::string::npos) {
+                        current_location.redirect = line.substr(start, end - start);
+                        trim(current_location.redirect);
+                        //std::cout << "Parsed redirect: " << current_location.redirect << std::endl;  // Debug
+                    }
+                }
+                
 
                 if (line.find("}") != std::string::npos) {
                     if (inside_location_block) {

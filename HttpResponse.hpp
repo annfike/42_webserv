@@ -2,7 +2,10 @@
 #define HTTPRESPONSE_HPP
 
 #include <string>
+#include <cstdlib>
 #include <iostream>
+#include <sstream>
+#include <unistd.h>
 #include "ServerConfig.hpp"
 
 class Response {

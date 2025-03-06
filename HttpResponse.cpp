@@ -22,55 +22,98 @@ void Response::print() const {
     std::cout << "----------------------------------------------------------" << std::endl;
 }
 
-
-/*bool isMethodAllowed(const std::string& method) {
-    // проверка допустимости метода
-    (void)method;
-    return false;
-}*/
-
-//Как добраться до конфига? у нас фд в execRead
-//Функция для проверки допустимости метода 
-bool isMethodAllowed(const ServerConfig& config, const std::string& method, const std::string& url) {
-    // Ищем Location, соответствующий URL
-    for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
-         it != config.locations.end(); ++it) {
-            std::cerr << "location ==========================================";
-        const std::string& locationPath = it->first;
-        const ServerConfig::Location& location = it->second;
-        // Проверяем, соответствует ли URL текущему Location
-        if (url.find(locationPath) != std::string::npos) {
-
-            // Проверяем, есть ли метод в списке разрешенных методов
-            for (std::vector<std::string>::const_iterator methodIt = location.methods.begin();
-                 methodIt != location.methods.end(); ++methodIt) {
-                    std::cerr << *methodIt << "+++";
-                if (*methodIt == method) {
-                    return true; // Метод разрешен
-                }
-            }            
-            return false; // Метод не разрешен
+// Функция для поиска Location по URL
+int getLocation(const ServerConfig& config, const std::string& url) {
+    std::string url_to_test = url;
+    // Поиск по полному пути или его частям
+    while (url_to_test != "/") {
+        // Ищем путь в locations
+        for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
+             it != config.locations.end(); ++it) {
+            std::cerr << "location: " << it->first << "+++";
+            if (it->first == url_to_test) {
+                // Возвращаем индекс (позицию) найденного Location
+                return std::distance(config.locations.begin(), it);
+            }
+        }
+        // Укорачиваем путь
+        size_t last_slash = url.find_last_of('/');
+        if (last_slash == std::string::npos) {
+            break;
+        }
+        url_to_test = url_to_test.substr(0, last_slash);
+        if (url_to_test.empty()) {
+            url_to_test = "/";
         }
     }
-    // Если Location для URL не найден, возвращаем false
+    // Проверка корневого пути
+    for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
+         it != config.locations.end(); ++it) {
+        if (it->first == "/") {
+            return std::distance(config.locations.begin(), it);
+        }
+    }
+    return -1;
+}
+
+const ServerConfig::Location* getLocationByIndex(const ServerConfig& config, int index) {
+    int i = 0;
+    for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
+         it != config.locations.end(); ++it, ++i) {
+        if (i == index) {
+            return &(it->second);
+        }
+    }
+    return NULL;
+}
+
+bool isMethodAllowed(const ServerConfig& config, const std::string& method, int location_index) {
+    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
+    // Проверяем, есть ли метод в списке разрешенных методов
+    for (std::vector<std::string>::const_iterator methodIt = location.methods.begin();
+         methodIt != location.methods.end(); ++methodIt) {
+        std::cerr << "method: " << method << "---";
+        std::cerr << *methodIt << "+++";
+        if (*methodIt == method) {
+            return true; // Метод разрешен
+        }
+    }
     return false;
 }
 
-bool isBodySizeValid(size_t size) {
-    // проверка размера тела запроса
-    (void)size;
-    return false;
+bool isBodySizeValid(const ServerConfig& config, size_t size) {
+    std::string str = config.client_max_body_size;
+    if(str == "") {
+        str = "1000000"; // какой макс????? в конфиге у нас два в сервере и локэйшене ??
+    }
+    char* end;
+    unsigned long maxBodySize = std::strtoul(str.c_str(), &end, 10);
+    std::cerr << "maxBodySize: " << maxBodySize << "+++";
+    std::cerr << "size: " << size << "+++";
+    return size <= maxBodySize;
 }
 
-std::string findRedirectPath(const std::string& url) {
-    // поиск пути перенаправления
-    (void)url;
+std::string findRedirectPath(const ServerConfig& config, int location_index) {
+    //разделить 301 и гугл
+    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
+    std::cerr << "location.path: " << location.path << " redirect: " << location.redirect << "+++";
+    if (!location.redirect.empty()) {
+        return location.redirect;
+    }
     return "";
 }
 
-std::string findLocalPath(const std::string& url) {
-    // поиск локального пути
-    (void)url;
+std::string findLocalPath(const ServerConfig& config, const std::string& url, int location_index) {
+    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
+    std::string fullpath = location.root + url;
+    if (!fullpath.empty() && fullpath[0] == '/') {
+        fullpath.erase(0, 1); // Удаляем первый символ
+    }
+    // Проверка существования пути
+    if (access(fullpath.c_str(), F_OK) != -1) {
+        std::cout << "Path exists: " << fullpath << std::endl;
+        return fullpath; // Путь существует, возвращаем его
+    }
     return "";
 }
 
@@ -104,22 +147,29 @@ bool isCGIExtension(const std::string& extension) {
 }
 
 Response Response::handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize) {
-    if (!isMethodAllowed(config, method, url)) {
+    int location_index = getLocation(config, url);
+    std::cerr << "location index: " << location_index << "+++";
+    if (location_index == -1) {
+        std::cerr << "nooo getlocation" << std::endl;
+        return Response(Response::ERROR, 404, "Not Found");
+    }
+
+    if (!isMethodAllowed(config, method, location_index)) {
         return Response(Response::ERROR, 405, "Method Not Allowed");
     }
 
-    if (!isBodySizeValid(bodySize)) {
+    if (!isBodySizeValid(config, bodySize)) {
         return Response(Response::ERROR, 413, "Payload Too Large");
     }
 
-    std::string redirectPath = findRedirectPath(url);
+    std::string redirectPath = findRedirectPath(config, location_index);
     if (!redirectPath.empty()) {
         return Response(Response::REDIRECT, 301, "", redirectPath);
     }
 
-    std::string localPath = findLocalPath(url);
+    std::string localPath = findLocalPath(config, url, location_index);
     if (localPath.empty()) {
-        return Response(Response::ERROR, 404, "File Not Found");
+        return Response(Response::ERROR, 404, "Path Not Found");
     }
 
     if (!fileExists(localPath)) {

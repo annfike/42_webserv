@@ -16,6 +16,7 @@ void ServerConfig::Location::print() const {
     std::cout << "  Upload Store: " << upload_store << std::endl;
     std::cout << "  Autoindex: " << (autoindex ? "on" : "off") << std::endl;
     std::cout << "  Max Body: " << max_body << std::endl;
+    std::cout << "  Redirect: " << redirect << std::endl;
 }
 
 void ServerConfig::print() const {
@@ -29,3 +30,14 @@ void ServerConfig::print() const {
         it->second.print();
     }
 }
+
+/*const ServerConfig::Location* getLocationByIndex(const ServerConfig& config, int index) {
+    int i = 0;
+    for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
+         it != config.locations.end(); ++it, ++i) {
+        if (i == index) {
+            return &(it->second);
+        }
+    }
+    return NULL;
+}*/
