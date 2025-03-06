@@ -17,7 +17,8 @@ SocketManager::~SocketManager()
 
 SocketManager &SocketManager::operator=(const SocketManager &s)
 {
-	*this = s;
+	this->ports = s.ports;
+	this->sockets = s.sockets;
 	return *this;
 }
 
@@ -36,8 +37,6 @@ void SocketManager::bindSocket(std::string ip, int port)
 	if (it != ports.end())
 		return;
 
-	std::cerr << "/"<<port << "/\n";
-
 	int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (socket_fd == -1)
 		throw std::runtime_error("Ошибка при создании сокета");
@@ -52,12 +51,24 @@ void SocketManager::bindSocket(std::string ip, int port)
 		return;
 	}
 
-	struct sockaddr_in server_addr = {};
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(port);
-	server_addr.sin_addr.s_addr = INADDR_ANY;
+	struct addrinfo hints, *res;
+    std::memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET; // IPv4
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
 
-	std::cerr << '|' << socket_fd << '-' << port << '|';
+    if (getaddrinfo(ip.c_str(), NULL, &hints, &res) != 0)
+    {
+        std::cerr << "Invalid IP address: " << ip << std::endl;
+        close(socket_fd);
+        return;
+    }
+
+	struct sockaddr_in server_addr;
+    std::memcpy(&server_addr, res->ai_addr, sizeof(struct sockaddr_in));
+    server_addr.sin_port = htons(port);
+	freeaddrinfo(res);
+
 	if (bind(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
 	{
 		close(socket_fd);
@@ -72,6 +83,8 @@ void SocketManager::bindSocket(std::string ip, int port)
 		throw std::runtime_error("Ошибка при переводе сокета в режим прослушивания");
 	}
 	//fcntl(socket_fd, F_SETFL, O_NONBLOCK);
+
+	std::cout << "	" << ip << ":" << port << " (" << socket_fd << ")" << std::endl;
 
 	sockets.push_back(getPollFd(socket_fd));
 	ports.push_back(port);
@@ -125,7 +138,10 @@ struct pollfd SocketManager::acceptConnection(struct pollfd socket)
 	fcntl(client_fd, F_SETFL, O_NONBLOCK);
 	//fcntl(client_fd, F_SETFD, FD_CLOEXEC);
 
-	std::cout << "Новое соединение принято (" << client_fd << ")" << std::endl;
+	std::cout << std::endl;
+	std::cout << "New client connection on socket " << socket.fd << " (fd=" << client_fd << ")" << std::endl;
+	std::cout << std::endl;
+	
 	return getPollFd(client_fd);
 }
 

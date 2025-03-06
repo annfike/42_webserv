@@ -103,17 +103,21 @@ void Server::execWrite(int fd, std::vector<int> &deletefds)
 
 void print(std::vector<struct pollfd> p)
 {
+	std::cout << std::endl;
+	std::cout << "Fds statuses:" << std::endl;
 	for (size_t i = 0; i < p.size(); i++)
 	{
-		std::cerr << p[i].fd << " - ";
-		std::cerr << p[i].events << " - ";
-		std::cerr << p[i].revents << ",   ";
+		std::cout << "	FD=" << p[i].fd;
+		std::cout << " E=" << p[i].events;
+		std::cout << " R=" << p[i].revents << std::endl;
 	}
-	std::cerr << std::endl;
+	std::cout << std::endl;
 }
 
 void Server::loop()
 {
+	std::cout << std::endl;
+	std::cout << "Creating sockets:" << std::endl;
 	// Создаем и настраиваем сокет с использованием SocketManager
 	for (size_t i = 0; i < servers.size(); i++)
 	{
@@ -122,8 +126,9 @@ void Server::loop()
 	}
 	// Пример использования порта 8080
 	socketManager.bindSocket("0.0.0.0", 8080);
+	std::cout << std::endl;
 
-	std::cerr << "// ********************************************************";
+	std::cerr << "// ********************************************************" << std::endl;;
 
 	std::vector<struct pollfd> fds(socketManager.sockets);    // Множество файловых дескрипторов, готовых для чтения
 	std::vector<struct pollfd> newfds;

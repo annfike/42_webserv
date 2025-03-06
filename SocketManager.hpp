@@ -13,6 +13,8 @@
 #include <vector>
 #include <fcntl.h>
 #include <algorithm>
+#include <sys/types.h>
+#include <netdb.h>
 
 class SocketManager {
 public:
