@@ -14,6 +14,7 @@ void Response::print() const {
             break;
         case FOLDER_LIST:
             std::cerr << "Folder list generated" << std::endl;
+            std::cerr << "Folder: " << message << std::endl;
             break;
         case FILE:
             std::cerr << "File: " << filePath << std::endl;
@@ -164,6 +165,35 @@ bool isAutoIndexEnabled(const ServerConfig& config, int location_index) {
     return location.autoindex;
 }
 
+static Response generateFolderList(const std::string& folderPath) {
+    std::vector<std::string> folders;
+    DIR* dir = opendir(folderPath.c_str());
+    if (!dir) {
+        return Response(Response::ERROR, 404, "Directory not found");
+    }
+    struct dirent* entry;
+    while ((entry = readdir(dir))) {
+        std::string name = entry->d_name;
+        if (name == "." || name == "..") continue; // Пропускаем текущую и родительскую директории
+        std::string fullPath = folderPath + "/" + name;
+        struct stat statBuf;
+        if (stat(fullPath.c_str(), &statBuf) == 0 && S_ISDIR(statBuf.st_mode)) {
+            folders.push_back(name); // Добавляем только папки
+        }
+    }
+    closedir(dir);
+    // Формируем HTML-страницу с списком папок
+    std::stringstream html;
+    html << "<html><body><h1>Directory listing for " << folderPath << "</h1><ul>";
+    for (size_t i = 0; i < folders.size(); ++i) {
+        html << "<li><a href='" << folders[i] << "'>" << folders[i] << "</a></li>";
+    }
+    html << "</ul></body></html>";
+
+    return Response(Response::FOLDER_LIST, 200, html.str());
+}
+
+
 bool isCGIExtension(const std::string& extension) {
     // является ли расширение CGI
     (void)extension;
@@ -212,7 +242,7 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
             }
         } else if (isAutoIndexEnabled(config, location_index)) {
             std::cout << "Autoindex enabled" << std::endl;  
-            return Response(Response::FOLDER_LIST);
+            return generateFolderList(localPath);
         } else {
             return Response(Response::ERROR, 403, "Forbidden");
         }
