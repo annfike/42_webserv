@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sstream>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <dirent.h>
 #include "ServerConfig.hpp"
 
 class Response {

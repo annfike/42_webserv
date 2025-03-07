@@ -118,26 +118,50 @@ std::string findLocalPath(const ServerConfig& config, const std::string& url, in
 }
 
 bool fileExists(const std::string& path) {
-    // проверка существования файла
+    // проверка существования файла // for what? we check it in findLocalPath
     (void)path;
     return false;
 }
 
 bool isFolder(const std::string& path) {
-    // является ли путь папкой
-    (void)path;
-    return false;
+    struct stat info;
+    if (stat(path.c_str(), &info) != 0) {
+        std::cerr << "Ошибка доступа к пути: " <<  std::endl;
+        return false;
+    }
+    // Проверка, является ли путь директорией
+    return (info.st_mode & S_IFDIR) != 0;
 }
 
 bool hasIndexFile(const std::string& folderPath) {
-    // проверка наличия индексного файла в папке
-    (void)folderPath;
+    // Список возможных индексных файлов
+    const std::string indexFiles[] = {"index.html", "index.php", "index.htm"};
+    const int numIndexFiles = sizeof(indexFiles) / sizeof(indexFiles[0]);
+    DIR* dir = opendir(folderPath.c_str());
+    if (!dir) {
+        std::cerr << "Ошибка открытия директории: " << folderPath << std::endl;
+        return false;
+    }
+    // Читаем содержимое директории
+    struct dirent* entry;
+    while ((entry = readdir(dir))) {
+        std::string fileName = entry->d_name;
+        for (int i = 0; i < numIndexFiles; ++i) {
+            if (fileName == indexFiles[i]) {
+                closedir(dir);
+                return true;
+            }
+        }
+    }
+    closedir(dir);
     return false;
 }
 
-bool isAutoIndexEnabled() {
+
+bool isAutoIndexEnabled(const ServerConfig& config, int location_index) {
     //  включен ли автоиндекс
-    return false;
+    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
+    return location.autoindex;
 }
 
 bool isCGIExtension(const std::string& extension) {
@@ -172,14 +196,22 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
         return Response(Response::ERROR, 404, "Path Not Found");
     }
 
+    /* for what? we check it in findLocalPath
     if (!fileExists(localPath)) {
         return Response(Response::ERROR, 404, "File Not Found");
-    }
+    }*/
 
     if (isFolder(localPath)) {
+        std::cout << "Folder: " << localPath << std::endl;
         if (hasIndexFile(localPath)) {
-            return Response(Response::ERROR, 403, "Forbidden");
-        } else if (isAutoIndexEnabled()) {
+            //return Response(Response::ERROR, 403, "Forbidden");
+            if (isCGIExtension(localPath)) {
+                // Обработка CGI
+            } else {
+                return Response(Response::FILE, 0, "", "", localPath + "/index.html");
+            }
+        } else if (isAutoIndexEnabled(config, location_index)) {
+            std::cout << "Autoindex enabled" << std::endl;  
             return Response(Response::FOLDER_LIST);
         } else {
             return Response(Response::ERROR, 403, "Forbidden");
@@ -189,6 +221,7 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     if (isCGIExtension(localPath)) {
         // Обработка CGI
     }
+    
 
     return Response(Response::FILE, 0, "", "", localPath);
 }
