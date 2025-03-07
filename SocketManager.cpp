@@ -17,8 +17,7 @@ SocketManager::~SocketManager()
 
 SocketManager &SocketManager::operator=(const SocketManager &s)
 {
-	this->ports = s.ports;
-	this->sockets = s.sockets;
+	this->connections = s.connections;
 	return *this;
 }
 
@@ -30,12 +29,15 @@ struct pollfd getPollFd(int fd)
 	return pfd;
 }
 
-void SocketManager::bindSocket(std::string ip, int port)
+void SocketManager::bindSocket(ServerConfig config)
 {
-	(void)ip;
-	std::vector<int>::iterator it = std::find(ports.begin(), ports.end(), port);
-	if (it != ports.end())
-		return;
+	std::string ip = config.listen_IP;
+	int port = std::atoi(config.listen.c_str());
+	for (size_t i = 0; i < connections.size(); i++)
+	{
+		if (connections[i].ip == ip && connections[i].port == port)
+			return;
+	}
 
 	int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (socket_fd == -1)
@@ -71,23 +73,30 @@ void SocketManager::bindSocket(std::string ip, int port)
 
 	if (bind(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
 	{
+		//Ошибка при привязке сокета к адресу
 		close(socket_fd);
 		std::cerr << std::strerror(errno) << std::endl;
 		return;
-		throw std::runtime_error("Ошибка при привязке сокета к адресу");
 	}
 
 	if (listen(socket_fd, 32) < 0)
 	{
+		//Ошибка при переводе сокета в режим прослушивания
 		close(socket_fd);
-		throw std::runtime_error("Ошибка при переводе сокета в режим прослушивания");
+		std::cerr << std::strerror(errno) << std::endl;
+		return;
 	}
 	//fcntl(socket_fd, F_SETFL, O_NONBLOCK);
 
 	std::cout << "	" << ip << ":" << port << " (" << socket_fd << ")" << std::endl;
 
-	sockets.push_back(getPollFd(socket_fd));
-	ports.push_back(port);
+	Connection con;
+	con.ip = ip;
+	con.port = port;
+	con.poll = getPollFd(socket_fd);
+	con.isSocket = true;
+	con.config = config;
+	connections.push_back(con);
 }
 
 bool SocketManager::getActive(std::vector<struct pollfd>& fds)
@@ -147,9 +156,9 @@ struct pollfd SocketManager::acceptConnection(struct pollfd socket)
 
 bool SocketManager::isSocket(int fd)
 {
-	for (size_t i = 0; i < sockets.size(); i++)
+	for (size_t i = 0; i < connections.size(); i++)
 	{
-		if (sockets[i].fd == fd)
+		if (connections[i].poll.fd == fd)
 			return true;
 	}
 	return false;
@@ -157,9 +166,9 @@ bool SocketManager::isSocket(int fd)
 
 void SocketManager::closeSockets()
 {
-	for (size_t i = 0; i < sockets.size(); i++)
+	for (size_t i = 0; i < connections.size(); i++)
 	{
-		close(sockets[i].fd);
+		close(connections[i].poll.fd);
 	}
-	sockets.clear();
+	connections.clear();
 }

@@ -122,15 +122,18 @@ void Server::loop()
 	for (size_t i = 0; i < servers.size(); i++)
 	{
 		//TODO nuzno tolko uniq serv+port
-		socketManager.bindSocket(servers[i].listen_IP, std::atoi(servers[i].listen.c_str()));
+		socketManager.bindSocket(servers[i]);
 	}
 	// Пример использования порта 8080
-	socketManager.bindSocket("0.0.0.0", 8080);
+	//socketManager.bindSocket("0.0.0.0", 8080);
 	std::cout << std::endl;
 
-	std::cerr << "// ********************************************************" << std::endl;;
-
-	std::vector<struct pollfd> fds(socketManager.sockets);    // Множество файловых дескрипторов, готовых для чтения
+	// Множество файловых дескрипторов, готовых для чтения
+	std::vector<struct pollfd> fds;
+	for (size_t i = 0; i < socketManager.connections.size(); i++)
+	{
+		fds.push_back(socketManager.connections[i].poll);
+	}
 	std::vector<struct pollfd> newfds;
 	std::vector<int> deletefds;
 	while (true)
