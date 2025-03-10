@@ -54,21 +54,21 @@ void SocketManager::bindSocket(ServerConfig config)
 	}
 
 	struct addrinfo hints, *res;
-    std::memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET; // IPv4
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+	std::memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET; // IPv4
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
 
-    if (getaddrinfo(ip.c_str(), NULL, &hints, &res) != 0)
-    {
-        std::cerr << "Invalid IP address: " << ip << std::endl;
-        close(socket_fd);
-        return;
-    }
+	if (getaddrinfo(ip.c_str(), NULL, &hints, &res) != 0)
+	{
+		std::cerr << "Invalid IP address: " << ip << std::endl;
+		close(socket_fd);
+		return;
+	}
 
 	struct sockaddr_in server_addr;
-    std::memcpy(&server_addr, res->ai_addr, sizeof(struct sockaddr_in));
-    server_addr.sin_port = htons(port);
+	std::memcpy(&server_addr, res->ai_addr, sizeof(struct sockaddr_in));
+	server_addr.sin_port = htons(port);
 	freeaddrinfo(res);
 
 	if (bind(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
@@ -99,69 +99,71 @@ void SocketManager::bindSocket(ServerConfig config)
 	connections.push_back(con);
 }
 
-bool SocketManager::getActive(std::vector<struct pollfd>& fds)
+std::vector<Connection> SocketManager::getActiveConnections()
 {
-	if (fds.empty())
-		return false;
+	std::vector<struct pollfd> fds;
+	for (size_t i = 0; i < connections.size(); i++)
+	{
+		fds.push_back(connections[i].poll);
+	}
 
-	std::cerr << "poll\n";
+	if (fds.empty())
+		return std::vector<Connection>();
+
 	int activity = poll(fds.data(), fds.size(), -1);
 	if (activity <= 0)
 	{
-		std::cerr << activity << " poll fail\n";
-		return false;
-	}
-	std::cerr << activity << "poll true\n";
-	return true;
-
-	/*
-	fdread = master_set;
-	fdwrite = master_set;
-
-	int activity = select(max_fd + 1, &fdread, &fdwrite, NULL, 0);
-	if (activity == 0)
-		return false;
-	if (activity == -1)
-	{
 		std::cerr << std::strerror(errno) << std::endl;
-		std::cerr << "Ошибка при вызове select!" << std::endl;
-		return false;
+		return std::vector<Connection>();
 	}
-	return true;
-	*/
+
+	std::vector<Connection> cons;
+	for (size_t i = 0; i < fds.size(); i++)
+	{
+		if (!fds[i].revents)
+			continue;
+		
+		Connection* con = getConnection(fds[i].fd);
+		con->poll.revents = fds[i].revents;
+		cons.push_back(*con);
+	}
+
+	return cons;
 }
 
-struct pollfd SocketManager::acceptConnection(struct pollfd socket)
+void SocketManager::acceptConnection(Connection socket)
 {
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
+	if (!socket.isSocket)
+	{
+		std::cerr << "Connection not found - " << socket.poll.fd << std::endl;
+		return;
+	}
 
 	// Принятие нового соединения
-	int client_fd = accept(socket.fd, (struct sockaddr *)&client_addr, &client_len);
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+	int client_fd = accept(socket.poll.fd, (struct sockaddr *)&client_addr, &client_len);
 	if (client_fd < 0)
 	{
+		std::cerr << std::strerror(errno) << std::endl;
 		std::cerr << "Ошибка при принятии соединения!" << std::endl;
-		return getPollFd(-1);
+		return;
 	}
 
 	fcntl(client_fd, F_SETFL, O_NONBLOCK);
 	//fcntl(client_fd, F_SETFD, FD_CLOEXEC);
 
 	std::cout << std::endl;
-	std::cout << "New client connection on socket " << socket.fd << " (fd=" << client_fd << ")" << std::endl;
+	std::cout << "New client connection on socket " << socket.poll.fd << " (fd=" << client_fd << ")" << std::endl;
 	std::cout << std::endl;
-	
-	return getPollFd(client_fd);
-}
 
-bool SocketManager::isSocket(int fd)
-{
-	for (size_t i = 0; i < connections.size(); i++)
-	{
-		if (connections[i].poll.fd == fd)
-			return true;
-	}
-	return false;
+	Connection con;
+	con.isSocket = false;
+	con.ip = socket.ip;
+	con.port = socket.port;
+	con.config = socket.config;
+	con.poll = getPollFd(client_fd);
+	connections.push_back(con);
 }
 
 void SocketManager::closeSockets()
@@ -171,4 +173,27 @@ void SocketManager::closeSockets()
 		close(connections[i].poll.fd);
 	}
 	connections.clear();
+}
+
+Connection* SocketManager::getConnection(int fd)
+{
+	for (size_t i = 0; i < connections.size(); i++)
+	{
+		if (connections[i].poll.fd == fd)
+			return &connections[i];
+	}
+	return NULL;
+}
+
+void SocketManager::closeConnection(Connection con)
+{
+	for (size_t j = 0; j < connections.size(); j++) 
+	{
+		if (connections[j].poll.fd == con.poll.fd) 
+		{
+			close(con.poll.fd);
+			connections.erase(connections.begin() + j);
+			break;
+		}
+	}
 }

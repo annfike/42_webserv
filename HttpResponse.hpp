@@ -22,6 +22,7 @@ public:
     Response(Type type, int code = 0, const std::string& message = "", const std::string& destination = "", const std::string& filePath = "");
     void print() const;
     Response handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize);
+    std::string getPath(const ServerConfig& config, const std::string& url);
 
 private:
     Type type;

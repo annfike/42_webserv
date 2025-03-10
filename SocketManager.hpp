@@ -26,10 +26,11 @@ class SocketManager {
 		SocketManager& operator=(const SocketManager& s);
 		
 		void bindSocket(ServerConfig config);
-		bool getActive(std::vector<struct pollfd>& fds);
-		struct pollfd acceptConnection(struct pollfd socket);
-		bool isSocket(int fd);
+		std::vector<Connection> getActiveConnections();
+		void acceptConnection(Connection socket);
+		Connection* getConnection(int fd);
 		void closeSockets();
+		void closeConnection(Connection con);
 		std::vector<Connection> connections;
 };
 

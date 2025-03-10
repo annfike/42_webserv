@@ -30,8 +30,8 @@ private:
 	SocketManager socketManager;
 
 	void parseConfig(const std::string &config);
-	void execRead(const ServerConfig& config, int fd, std::vector<int>& deletefds);
-	void execWrite(int fd, std::vector<int>& deletefds);
+	void execRead(Connection con);
+	void execWrite(Connection con);
 };
 
 #endif // SERVER_HPP

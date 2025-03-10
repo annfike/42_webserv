@@ -30,12 +30,13 @@ void Server::parseConfig(const std::string &config)
 	}
 }
 
-void Server::execRead(const ServerConfig& config, int fd, std::vector<int>& deletefds)
+void Server::execRead(Connection con)
 {
-	std::cerr << fd << "/*/*/*/*/*/*/*/*\n";
+	std::cout << "----------------- READING FROM FD=" << con.poll.fd << " -----------------" <<std::endl;
+	
 	// Чтение HTTP-запроса от клиента
 	char buffer[2049];
-	ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+	ssize_t bytes_read = read(con.poll.fd, buffer, sizeof(buffer) - 1);
 
 	if (bytes_read <= 0)
 	{
@@ -44,8 +45,7 @@ void Server::execRead(const ServerConfig& config, int fd, std::vector<int>& dele
 			std::cout << "Клиент отключился" << std::endl;
 		else
 			std::cerr << "Ошибка при чтении данных!" << std::endl;
-		close(fd);
-		deletefds.push_back(fd);
+		socketManager.closeConnection(con);	
 		return;
 	}
 
@@ -57,8 +57,8 @@ void Server::execRead(const ServerConfig& config, int fd, std::vector<int>& dele
 	request.parse(buffer);
 	request.printRequest();
 	//Response response(Response::FILE, 0, "", "", "/var/www/example");
-	Response response = response.handleRequest(config, request.getMethod(), request.getUrl(), request.getBody().size());
-    response.print();
+	Response response = response.handleRequest(con.config, request.getMethod(), request.getUrl(), request.getBody().size());
+	response.print();
 
 
 	//TODO need to find a right website
@@ -66,7 +66,19 @@ void Server::execRead(const ServerConfig& config, int fd, std::vector<int>& dele
 	//TODO if (connection == close)
 	//	close(fd);
 
-	std::ifstream file("web1/index.html");
+	//con.config.locations;
+
+	if (request.getUrl() == "/favicon.ico")
+	{
+		socketManager.closeConnection(con);
+		return;
+	}
+
+	std::string path = response.getPath(con.config, request.getUrl());
+	std::cerr << std::endl;
+	std::cerr << "Path=" << path << std::endl;
+	
+	std::ifstream file(path.c_str());
 	if (!file)
 		std::cerr << "Ошибка при чтении file!" << std::endl;
 
@@ -80,7 +92,7 @@ void Server::execRead(const ServerConfig& config, int fd, std::vector<int>& dele
 		"HTTP/1.1 200 OK\r\n"
 		"Content-Type: text/html\r\n"
 		"Connection: close\r\n\r\n";
-	
+
 	//bytes_read = read(f, buffer, sizeof(buffer) - 1);
 	//bytes_read = recv(f, buffer, sizeof(buffer) - 1, MSG_DONTWAIT);
 	file.read(buffer, sizeof(buffer));
@@ -89,27 +101,25 @@ void Server::execRead(const ServerConfig& config, int fd, std::vector<int>& dele
 	file.close();
 	// Отправка ответа клиенту
 	//if (false)
-	send(fd, http_response, strlen(http_response), MSG_DONTWAIT | MSG_NOSIGNAL);
-	send(fd, buffer, strlen(buffer), MSG_DONTWAIT | MSG_NOSIGNAL);
-	close(fd);
-	deletefds.push_back(fd);
+	send(con.poll.fd, http_response, strlen(http_response), MSG_DONTWAIT | MSG_NOSIGNAL);
+	send(con.poll.fd, buffer, strlen(buffer), MSG_DONTWAIT | MSG_NOSIGNAL);
+	socketManager.closeConnection(con);
 }
 
-void Server::execWrite(int fd, std::vector<int> &deletefds)
+void Server::execWrite(Connection con)
 {
-	close(fd);
-	deletefds.push_back(fd);
+	socketManager.closeConnection(con);
 }
 
-void print(std::vector<struct pollfd> p)
+void print(std::vector<Connection> cons)
 {
 	std::cout << std::endl;
 	std::cout << "Fds statuses:" << std::endl;
-	for (size_t i = 0; i < p.size(); i++)
+	for (size_t i = 0; i < cons.size(); i++)
 	{
-		std::cout << "	FD=" << p[i].fd;
-		std::cout << " E=" << p[i].events;
-		std::cout << " R=" << p[i].revents << std::endl;
+		std::cout << "	FD=" << cons[i].poll.fd;
+		std::cout << " E=" << cons[i].poll.events;
+		std::cout << " R=" << cons[i].poll.revents << std::endl;
 	}
 	std::cout << std::endl;
 }
@@ -128,63 +138,26 @@ void Server::loop()
 	//socketManager.bindSocket("0.0.0.0", 8080);
 	std::cout << std::endl;
 
-	// Множество файловых дескрипторов, готовых для чтения
-	std::vector<struct pollfd> fds;
-	for (size_t i = 0; i < socketManager.connections.size(); i++)
-	{
-		fds.push_back(socketManager.connections[i].poll);
-	}
-	std::vector<struct pollfd> newfds;
-	std::vector<int> deletefds;
 	while (true)
 	{
 		// Ожидаем активности на одном из сокетов
-		print(fds);
-		if (!socketManager.getActive(fds))
+		std::vector<Connection> cons = socketManager.getActiveConnections();
+		if (cons.empty())
 			continue;
 
-		for (int i = 0; i < (int)fds.size(); i++)
+		print(cons);
+		for (size_t i = 0; i < cons.size(); i++)
 		{
-			//sockets fds
-			if (socketManager.isSocket(fds[i].fd))
+			if (cons[i].isSocket)
 			{
-				if (fds[i].revents & (POLLIN | POLLOUT))
-				{
-					std::cerr << fds[i].fd << " - socket\n";
-					struct pollfd fd = socketManager.acceptConnection(fds[i]);
-					if (fd.fd != -1)
-						newfds.push_back(fd);
-				}
+				socketManager.acceptConnection(cons[i]);
 				continue;
 			}
 
-			print(fds);
-			//TODO read fds
-			if (fds[i].revents & POLLIN)
-			{
-				execRead(servers[0], fds[i].fd, deletefds);
-			}
-
-			//TODO write fds
-			if (fds[i].revents & POLLOUT)
-			{
-				execWrite(fds[i].fd, deletefds);
-			}
+			if (cons[i].poll.revents & POLLIN)
+				execRead(cons[i]);
+			if (cons[i].poll.revents & POLLOUT)
+				execWrite(cons[i]);
 		}
-		fds.insert(fds.end(), newfds.begin(), newfds.end());
-		newfds.clear();
-
-		for (size_t i = 0; i < deletefds.size(); ++i) 
-		{
-			for (size_t j = 0; j < fds.size(); ++j) 
-			{
-				if (fds[j].fd == deletefds[i]) 
-				{
-					fds.erase(fds.begin() + j);
-					break;
-				}
-			}
-		}
-		deletefds.clear();
 	}
 }
