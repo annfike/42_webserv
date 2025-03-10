@@ -158,7 +158,6 @@ bool hasIndexFile(const std::string& folderPath) {
     return false;
 }
 
-
 bool isAutoIndexEnabled(const ServerConfig& config, int location_index) {
     //  включен ли автоиндекс
     const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
@@ -192,7 +191,6 @@ static Response generateFolderList(const std::string& folderPath) {
 
     return Response(Response::FOLDER_LIST, 200, html.str());
 }
-
 
 bool isCGIExtension(const std::string& extension) {
     // является ли расширение CGI
@@ -235,24 +233,19 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
         std::cout << "Folder: " << localPath << std::endl;
         if (hasIndexFile(localPath)) {
             //return Response(Response::ERROR, 403, "Forbidden");
-            if (isCGIExtension(localPath)) {
-                // Обработка CGI
-            } else {
+            if (isCGIExtension(localPath))
+                return Response(Response::FILE, 0, "CGI Execution", "", localPath + "/index.html");
+            else
                 return Response(Response::FILE, 0, "", "", localPath + "/index.html");
-            }
         } else if (isAutoIndexEnabled(config, location_index)) {
-            std::cout << "Autoindex enabled" << std::endl;  
+            std::cout << "Autoindex enabled" << std::endl;
             return generateFolderList(localPath);
-        } else {
+        } else
             return Response(Response::ERROR, 403, "Forbidden");
-        }
     }
 
-    if (isCGIExtension(localPath)) {
-        // Обработка CGI
-    }
-    
-
+    if (isCGIExtension(localPath))
+        return Response(Response::FILE, 0, "CGI Execution", "", localPath);
     return Response(Response::FILE, 0, "", "", localPath);
 }
 
