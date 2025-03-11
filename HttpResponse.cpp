@@ -200,6 +200,20 @@ bool isCGIExtension(const std::string& extension) {
     return false;
 }
 
+std::string Response::getPath(const ServerConfig& config, const std::string& url)
+{
+    int location_index = getLocation(config, url);
+    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
+    std::string fullpath = location.root + url;
+    if (!fullpath.empty() && fullpath[0] == '/')
+    {
+        fullpath.erase(0, 1); // Удаляем первый символ
+    }
+    if (fullpath.empty() || url[url.length() - 1] == '/')
+		fullpath = fullpath + "index.html";
+    return fullpath;
+}
+
 Response Response::handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize) {
     int location_index = getLocation(config, url);
     std::cerr << "location index: " << location_index << "+++";
@@ -313,4 +327,5 @@ const char* Response::toHttpResponse() const {
     std::strcpy(httpResponse, responseStr.c_str());
     return httpResponse;
 }
+
 

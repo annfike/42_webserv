@@ -24,6 +24,7 @@ public:
     void print() const;
     Response handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize);
     const char* toHttpResponse() const;
+    std::string getPath(const ServerConfig& config, const std::string& url);
 
 private:
     Type type;
