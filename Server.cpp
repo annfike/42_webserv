@@ -76,10 +76,13 @@ void Server::execRead(const ServerConfig& config, int fd, std::vector<int>& dele
 		"Content-Type: text/html\r\n"
 		"Connection: close\r\n\r\n"
 		"<html><body><h1>Hello, World!</h1></body></html>";*/
-	const char * http_response =
+	/*const char * http_response =
 		"HTTP/1.1 200 OK\r\n"
 		"Content-Type: text/html\r\n"
-		"Connection: close\r\n\r\n";
+		"Connection: close\r\n\r\n";*/
+	const char * http_response = response.toHttpResponse();
+	std::cout << http_response;
+	std::cout  << std::endl << "----------------------------------------------------------" << std::endl;
 	
 	//bytes_read = read(f, buffer, sizeof(buffer) - 1);
 	//bytes_read = recv(f, buffer, sizeof(buffer) - 1, MSG_DONTWAIT);

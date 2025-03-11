@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <cstring>
 #include "ServerConfig.hpp"
 
 class Response {
@@ -22,6 +23,7 @@ public:
     Response(Type type, int code = 0, const std::string& message = "", const std::string& destination = "", const std::string& filePath = "");
     void print() const;
     Response handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize);
+    const char* toHttpResponse() const;
 
 private:
     Type type;

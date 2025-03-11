@@ -4,7 +4,7 @@ Response::Response(Type type, int code, const std::string& message, const std::s
     : type(type), code(code), message(message), destination(destination), filePath(filePath) {}
 
 void Response::print() const {
-    std::cout << "-------------------Response-------------------------------: ";
+    std::cout << "-------------------Response-------------------------------: " << std::endl;
     switch (type) {
         case ERROR:
             std::cerr << "Error: " << code << " " << message << std::endl;
@@ -254,5 +254,63 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     
 
     return Response(Response::FILE, 0, "", "", localPath);
+}
+
+ // Метод для формирования HTTP-ответа
+const char* Response::toHttpResponse() const {
+    std::ostringstream response;
+
+    // Добавляем статусную строку
+    switch (type) {
+        case ERROR:
+            response << "HTTP/1.1 " << code << " Error\r\n";
+            break;
+        case REDIRECT:
+            response << "HTTP/1.1 " << code << " Moved Temporarily\r\n";
+            break;
+        case FOLDER_LIST:
+            response << "HTTP/1.1 " << code << " OK\r\n";
+            break;
+        case FILE:
+            response << "HTTP/1.1 " << code << " OK\r\n";
+            break;
+        default:
+            response << "HTTP/1.1 500 Internal Server Error\r\n";
+            break;
+    }
+
+    // Добавляем заголовки
+    response << "Content-Type: text/html\r\n"; // По умолчанию тип содержимого — HTML
+    if (type == REDIRECT) {
+        response << "Location: " << destination << "\r\n"; // Заголовок для редиректа
+    }
+    response << "Connection: close\r\n"; // Закрываем соединение после ответа
+    response << "\r\n"; // Пустая строка между заголовками и телом
+
+    // Добавляем тело ответа
+    switch (type) {
+        case ERROR:
+            response << "<html><body><h1>Error " << code << "</h1><p>" << message << "</p></body></html>";
+            break;
+        case REDIRECT:
+            response << "<html><body><h1>Redirecting...</h1><p>You are being redirected to <a href=\"" << destination << "\">" << destination << "</a>.</p></body></html>";
+            break;
+        case FOLDER_LIST:
+            response << message; // message уже содержит HTML-список папок
+            break;
+        case FILE:
+            // добавить логику для отдачи файла
+            response << "<html><body><h1>File</h1><p>File path: " << filePath << "</p></body></html>";
+            break;
+        default:
+            response << "<html><body><h1>500 Internal Server Error</h1><p>Something went wrong.</p></body></html>";
+            break;
+    }
+
+    // Преобразуем поток в строку и возвращаем как C-строку
+    std::string responseStr = response.str();
+    char* httpResponse = new char[responseStr.size() + 1];
+    std::strcpy(httpResponse, responseStr.c_str());
+    return httpResponse;
 }
 
