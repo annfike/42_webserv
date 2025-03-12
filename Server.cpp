@@ -96,8 +96,6 @@ void Server::execRead(Connection con)
 	std::cout << http_response;
 	std::cout  << std::endl << "----------------------------------------------------------" << std::endl;
 	
-		"Connection: close\r\n\r\n";
-
 	//bytes_read = read(f, buffer, sizeof(buffer) - 1);
 	//bytes_read = recv(f, buffer, sizeof(buffer) - 1, MSG_DONTWAIT);
 	file.read(buffer, sizeof(buffer));
