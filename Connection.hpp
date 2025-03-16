@@ -9,11 +9,13 @@ class Connection
 	private:
 
 	public:
-		ServerConfig config;
+		std::vector<ServerConfig> configs;
 		struct pollfd poll;
 		bool isSocket;
 		std::string ip;
 		int port;
+
+		ServerConfig& getConfig(std::string serverName);
 };
 
 #endif

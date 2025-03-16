@@ -1,10 +1,10 @@
 NAME = webserver
 
-CC = c++
+CC = c++ #-g
 
 CFLAGS = -Wall -Werror -Wextra -std=c++98
 
-SRCS = main.cpp Server.cpp ConfigParser.cpp ServerConfig.cpp SocketManager.cpp HttpRequest.cpp HttpResponse.cpp
+SRCS = main.cpp Server.cpp ConfigParser.cpp ServerConfig.cpp SocketManager.cpp HttpRequest.cpp HttpResponse.cpp Connection.cpp
 
 OBJ_DIR = obj
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.cpp=.o))

@@ -15,17 +15,17 @@ void Server::parseConfig(const std::string &config)
 {
 	if (!ConfigParser::parseConfig(config, servers))
 	{
-		throw std::runtime_error("Ошибка при парсинге конфигурационного файла");
+		throw std::runtime_error("Error parsing configuration file!");
 	}
 
 	if (servers.empty())
 	{
-		throw std::runtime_error("Не найдено ни одного сервера в конфигурационном файле");
+		throw std::runtime_error("No servers found in configuration file!");
 	}
 
 	for (size_t i = 0; i < servers.size(); ++i)
 	{
-		std::cout << "-----------------Сервер " << i << ":----------------------------" << std::endl;
+		std::cout << "-----------------Server " << i << ":----------------------------" << std::endl;
 		servers[i].print();
 	}
 }
@@ -41,27 +41,24 @@ void Server::execRead(Connection con)
 	if (bytes_read <= 0)
 	{
 		// Если ошибка при чтении или клиент закрыл соединение
-		if (bytes_read == 0) 
-			std::cout << "Клиент отключился" << std::endl;
-		else
-			std::cerr << "Ошибка при чтении данных!" << std::endl;
-		socketManager.closeConnection(con);	
+		if (bytes_read < 0) 
+			std::cerr << "Error reading request body: " << strerror(errno) << std::endl;
+		socketManager.closeConnection(con);
 		return;
 	}
 
 	buffer[bytes_read] = '\0'; // Завершаем строку
-	std::cout << "Получен запрос: \n" << buffer << std::endl;
+	std::cout << "Request received: \n" << buffer << std::endl;
 
 	// Request & Response
 	HttpRequestParser request;
 	request.parse(buffer);
 	request.printRequest();
 	//Response response(Response::FILE, 0, "", "", "/var/www/example");
-	Response response = response.handleRequest(con.config, request.getMethod(), request.getUrl(), request.getBody().size());
+	std::cerr << request.hostName << std::endl;
+	ServerConfig& config = con.getConfig(request.hostName);
+	Response response = response.handleRequest(config, request.getMethod(), request.getUrl(), request.getBody().size());
 	response.print();
-
-
-	//TODO need to find a right website
 
 	//TODO if (connection == close)
 	//	close(fd);
@@ -74,13 +71,13 @@ void Server::execRead(Connection con)
 		return;
 	}
 
-	std::string path = response.getPath(con.config, request.getUrl());
+	std::string path = response.getPath(config, request.getUrl());
 	std::cerr << std::endl;
 	std::cerr << "Path=" << path << std::endl;
 	
 	std::ifstream file(path.c_str());
 	if (!file)
-		std::cerr << "Ошибка при чтении file!" << std::endl;
+		std::cerr << "Error reading file!" << std::endl;
 
 	// Формирование HTTP-ответа
 	/*char* http_response =

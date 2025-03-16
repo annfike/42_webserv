@@ -36,7 +36,10 @@ void SocketManager::bindSocket(ServerConfig config)
 	for (size_t i = 0; i < connections.size(); i++)
 	{
 		if (connections[i].ip == ip && connections[i].port == port)
+		{
+			connections[i].configs.push_back(config);
 			return;
+		}
 	}
 
 	int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -95,7 +98,7 @@ void SocketManager::bindSocket(ServerConfig config)
 	con.port = port;
 	con.poll = getPollFd(socket_fd);
 	con.isSocket = true;
-	con.config = config;
+	con.configs.push_back(config);
 	connections.push_back(con);
 }
 
@@ -161,7 +164,7 @@ void SocketManager::acceptConnection(Connection socket)
 	con.isSocket = false;
 	con.ip = socket.ip;
 	con.port = socket.port;
-	con.config = socket.config;
+	con.configs = socket.configs;
 	con.poll = getPollFd(client_fd);
 	connections.push_back(con);
 }
@@ -193,6 +196,11 @@ void SocketManager::closeConnection(Connection con)
 		{
 			close(con.poll.fd);
 			connections.erase(connections.begin() + j);
+			
+			std::cout << std::endl;
+			std::cout << "Client disconnected" << " (fd=" << con.poll.fd << ")" << std::endl;
+			std::cout << std::endl;
+
 			break;
 		}
 	}

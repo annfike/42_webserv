@@ -29,12 +29,24 @@ void HttpRequestParser::parse(const char* buffer) {
         body.resize(contentLength);
         request.read(&body[0], contentLength);
     }
+
+    it = headers.find("Host");
+    hostName = "";
+    if (it != headers.end()) {
+        std::string host = it->second;
+        std::size_t pos = host.find(':');
+        if (pos != std::string::npos)
+        {
+            hostName = host.substr(0, pos);
+        }
+    }
 }
 
 void HttpRequestParser::printRequest() const {
     std::cout << "-------------------Request-------------------------------" << std::endl;
     std::cout << "Method: " << method << std::endl;
     std::cout << "URL: " << url << std::endl;
+    std::cout << "Host: " << hostName << std::endl;
     std::cout << "HTTP Version: " << httpVersion << std::endl;
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
         std::cout << it->first << ": " << it->second << std::endl;

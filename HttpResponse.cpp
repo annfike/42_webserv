@@ -230,7 +230,14 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
 
     std::string redirectPath = findRedirectPath(config, location_index);
     if (!redirectPath.empty()) {
-        return Response(Response::REDIRECT, 301, "", redirectPath);
+        int status_code;
+        std::string url;
+        std::istringstream iss(destination);
+        iss >> status_code;
+        std::getline(iss, url);
+        if (!url.empty() && url[0] == ' ')
+            url.erase(0, 1);
+        return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
 
     std::string localPath = findLocalPath(config, url, location_index);
@@ -286,11 +293,12 @@ const char* Response::toHttpResponse() const {
             break;
     }
 
-    // Добавляем заголовки
-    response << "Content-Type: text/html\r\n"; // По умолчанию тип содержимого — HTML
+    // Добавляем заголовки     
+    response << "Content-Type: text/html\r\n"; // По умолчанию тип содержимого — HTML    
     if (type == REDIRECT) {
         response << "Location: " << destination << "\r\n"; // Заголовок для редиректа
-    }
+        response << "Content-Length: 0\r\n";  
+    }    
     response << "Connection: close\r\n"; // Закрываем соединение после ответа
     response << "\r\n"; // Пустая строка между заголовками и телом
 
@@ -318,6 +326,11 @@ const char* Response::toHttpResponse() const {
     std::string responseStr = response.str();
     char* httpResponse = new char[responseStr.size() + 1];
     std::strcpy(httpResponse, responseStr.c_str());
+    
+    std::cerr << "---RESPONSE---" << std::endl;
+    std::cerr << httpResponse << std::endl;
+    std::cerr << std::endl;
+
     return httpResponse;
 }
 

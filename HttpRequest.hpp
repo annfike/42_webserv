@@ -23,6 +23,7 @@ public:
     const std::string& getMethod() const;
     const std::string& getUrl() const;
     const std::string& getBody() const;
+    std::string hostName;
 };
 
 #endif // HTTPREQUEST_HPP
