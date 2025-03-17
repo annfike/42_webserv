@@ -232,7 +232,7 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     if (!redirectPath.empty()) {
         int status_code;
         std::string url;
-        std::istringstream iss(destination);
+        std::istringstream iss(redirectPath);
         iss >> status_code;
         std::getline(iss, url);
         if (!url.empty() && url[0] == ' ')
