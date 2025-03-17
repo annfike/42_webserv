@@ -10,6 +10,7 @@
 #include <dirent.h>
 #include <cstring>
 #include "ServerConfig.hpp"
+#include <fstream>
 
 class Response {
 public:

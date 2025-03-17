@@ -71,38 +71,12 @@ void Server::execRead(Connection con)
 		return;
 	}
 
-	std::string path = response.getPath(config, request.getUrl());
-	std::cerr << std::endl;
-	std::cerr << "Path=" << path << std::endl;
-	
-	std::ifstream file(path.c_str());
-	if (!file)
-		std::cerr << "Error reading file!" << std::endl;
-
-	// Формирование HTTP-ответа
-	/*char* http_response =
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Type: text/html\r\n"
-		"Connection: close\r\n\r\n"
-		"<html><body><h1>Hello, World!</h1></body></html>";*/
-	/*const char * http_response =
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Type: text/html\r\n"
-		"Connection: close\r\n\r\n";*/
 	const char * http_response = response.toHttpResponse();
-	std::cout << http_response;
 	std::cout  << std::endl << "----------------------------------------------------------" << std::endl;
 	
-	//bytes_read = read(f, buffer, sizeof(buffer) - 1);
-	//bytes_read = recv(f, buffer, sizeof(buffer) - 1, MSG_DONTWAIT);
-	file.read(buffer, sizeof(buffer));
-	buffer[file.gcount()] = '\0';
-	std::cerr << buffer;
-	file.close();
 	// Отправка ответа клиенту
 	//if (false)
 	send(con.poll.fd, http_response, strlen(http_response), MSG_DONTWAIT | MSG_NOSIGNAL);
-	send(con.poll.fd, buffer, strlen(buffer), MSG_DONTWAIT | MSG_NOSIGNAL);
 	socketManager.closeConnection(con);
 }
 

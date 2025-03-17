@@ -27,6 +27,7 @@ void Response::print() const {
 int getLocation(const ServerConfig& config, const std::string& url) {
     std::string url_to_test = url;
     // Поиск по полному пути или его частям
+
     while (url_to_test != "/") {
         // Ищем путь в locations
         for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
@@ -38,7 +39,7 @@ int getLocation(const ServerConfig& config, const std::string& url) {
             }
         }
         // Укорачиваем путь
-        size_t last_slash = url.find_last_of('/');
+        size_t last_slash = url_to_test.find_last_of('/');
         if (last_slash == std::string::npos) {
             break;
         }
@@ -314,8 +315,17 @@ const char* Response::toHttpResponse() const {
             response << message; // message уже содержит HTML-список папок
             break;
         case FILE:
-            // добавить логику для отдачи файла
-            response << "<html><body><h1>File</h1><p>File path: " << filePath << "</p></body></html>";
+            {    
+                std::ifstream file(filePath.c_str());
+                if (!file)
+                    std::cerr << "Error reading file " << filePath << "!" << std::endl;
+                char buffer[2049];
+                file.read(buffer, sizeof(buffer));
+                buffer[file.gcount()] = '\0';
+                std::cerr << buffer;
+                file.close();
+                response << buffer;
+            }               
             break;
         default:
             response << "<html><body><h1>500 Internal Server Error</h1><p>Something went wrong.</p></body></html>";
