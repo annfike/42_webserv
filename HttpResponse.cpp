@@ -275,6 +275,23 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
 const char* Response::toHttpResponse() const {
     std::ostringstream response;
 
+    // Определяем Content-Type по расширению файла
+    std::string contentType = "text/html"; // По умолчанию HTML
+    if (type == FILE) {
+        std::cerr << "TYPE!   filePath: " << filePath << std::endl;
+        std::string ext = filePath.substr(filePath.find_last_of('.') + 1);
+        if (ext == "html" || ext == "htm") contentType = "text/html";
+        else if (ext == "txt") contentType = "text/plain";
+        else if (ext == "jpg" || ext == "jpeg") contentType = "image/jpeg";
+        else if (ext == "png") contentType = "image/png";
+        else if (ext == "gif") contentType = "image/gif";
+        else if (ext == "css") contentType = "text/css";
+        else if (ext == "js") contentType = "application/javascript";
+        else if (ext == "json") contentType = "application/json";
+        else if (ext == "pdf") contentType = "application/pdf";
+        else if (ext == "ico") contentType = "image/x-icon";
+    }
+
     // Добавляем статусную строку
     switch (type) {
         case ERROR:
@@ -295,7 +312,8 @@ const char* Response::toHttpResponse() const {
     }
 
     // Добавляем заголовки     
-    response << "Content-Type: text/html\r\n"; // По умолчанию тип содержимого — HTML    
+    //response << "Content-Type: text/html\r\n"; // По умолчанию тип содержимого — HTML  
+    response << "Content-Type: " << contentType << "\r\n";  
     if (type == REDIRECT) {
         response << "Location: " << destination << "\r\n"; // Заголовок для редиректа
         response << "Content-Length: 0\r\n";  
