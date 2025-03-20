@@ -1,7 +1,7 @@
 #include "HttpResponse.hpp"
 
 Response::Response(Type type, int code, const std::string& message, const std::string& destination, const std::string& filePath)
-    : type(type), code(code), message(message), destination(destination), filePath(filePath) {}
+    : type(type), code(code), message(message), destination(destination), filePath(filePath), urlLocal("") {}
 
 void Response::print() const {
     std::cout << "-------------------Response-------------------------------: " << std::endl;
@@ -24,16 +24,20 @@ void Response::print() const {
 }
 
 // Функция для поиска Location по URL
-int getLocation(const ServerConfig& config, const std::string& url) {
+int Response::getLocation(const ServerConfig& config, const std::string& url) {
     std::string url_to_test = url;
     // Поиск по полному пути или его частям
-
+    std::cerr << "urlToTest " <<  url_to_test << "\n";
     while (url_to_test != "/") {
         // Ищем путь в locations
         for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
              it != config.locations.end(); ++it) {
-            std::cerr << "location: " << it->first << "+++";
+            std::cerr << "location: " << it->first << "+++\n";
             if (it->first == url_to_test) {
+                urlLocal = url.substr(it->first.length());
+                if (urlLocal == "/")
+                    urlLocal = "";
+                std::cerr << "urlLocal " <<  urlLocal << "\n";
                 // Возвращаем индекс (позицию) найденного Location
                 return std::distance(config.locations.begin(), it);
             }
@@ -105,9 +109,10 @@ std::string findRedirectPath(const ServerConfig& config, int location_index) {
     return "";
 }
 
-std::string findLocalPath(const ServerConfig& config, const std::string& url, int location_index) {
+std::string Response::findLocalPath(const ServerConfig& config, const std::string& url, int location_index) {
     const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
-    std::string fullpath = location.root + url;
+    std::string fullpath = location.root + urlLocal;
+    std::cerr << "\nlocation.root: " << url << " +++ " <<  location.root << " +++ " << fullpath << "+++ \n" ;
     if (!fullpath.empty() && fullpath[0] == '/') {
         fullpath.erase(0, 1); // Удаляем первый символ
     }
@@ -242,6 +247,7 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     }
 
     std::string localPath = findLocalPath(config, url, location_index);
+    std::cerr << "\nlocation index: " << url << " +++ " << location_index << " +++ " << localPath << " +++ \n" ;
     if (localPath.empty()) {
         return Response(Response::ERROR, 404, "Path Not Found");
     }
@@ -256,9 +262,9 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
         if (hasIndexFile(localPath)) {
             //return Response(Response::ERROR, 403, "Forbidden");
             if (isCGIExtension(localPath))
-                return Response(Response::FILE, 0, "CGI Execution", "", localPath + "/index.html");
+                return Response(Response::FILE, 200, "CGI Execution", "", localPath + "/index.html");
             else
-                return Response(Response::FILE, 0, "", "", localPath + "/index.html");
+                return Response(Response::FILE, 200, "", "", localPath + "/index.html");
         } else if (isAutoIndexEnabled(config, location_index)) {
             std::cout << "Autoindex enabled" << std::endl;
             return generateFolderList(localPath);
@@ -267,8 +273,8 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     }
 
     if (isCGIExtension(localPath))
-        return Response(Response::FILE, 0, "CGI Execution", "", localPath);
-    return Response(Response::FILE, 0, "", "", localPath);
+        return Response(Response::FILE, 200, "CGI Execution", "", localPath);
+    return Response(Response::FILE, 200, "", "", localPath);
 }
 
  // Метод для формирования HTTP-ответа
@@ -316,8 +322,19 @@ const char* Response::toHttpResponse() const {
     response << "Content-Type: " << contentType << "\r\n";  
     if (type == REDIRECT) {
         response << "Location: " << destination << "\r\n"; // Заголовок для редиректа
-        response << "Content-Length: 0\r\n";  
-    }    
+        response << "Content-Length: 0\r\n";
+    }
+    if (type == FILE)
+    {
+        std::ifstream file(filePath.c_str(), std::ios::binary | std::ios::ate);
+        if (file)
+        {
+            std::streamsize fileSize = file.tellg(); 
+            file.seekg(0, std::ios::beg);
+            response << "Content-Length: " << fileSize << "\r\n";
+            file.close();
+        }
+    }
     response << "Connection: close\r\n"; // Закрываем соединение после ответа
     response << "\r\n"; // Пустая строка между заголовками и телом
 
@@ -333,17 +350,35 @@ const char* Response::toHttpResponse() const {
             response << message; // message уже содержит HTML-список папок
             break;
         case FILE:
-            {    
-                std::ifstream file(filePath.c_str());
+            {
+                std::ifstream file(filePath.c_str(), std::ios::binary);
                 if (!file)
-                    std::cerr << "Error reading file " << filePath << "!" << std::endl;
-                char buffer[2049];
-                file.read(buffer, sizeof(buffer));
-                buffer[file.gcount()] = '\0';
-                std::cerr << buffer;
-                file.close();
-                response << buffer;
-            }               
+                    std::cerr << "Error reading file " << filePath << std::endl;
+                else
+                {
+                    /*std::cerr << "Success reading file " << filePath << "!!!" << std::endl;
+                    char buffer[2200000];
+                    file.read(buffer, sizeof(buffer));
+                    buffer[file.tellg()] = '\0';
+                    std::cerr << buffer;
+                    file.close();
+                    response << buffer;*/
+                    std::cerr << "file reading ... " << filePath << "!" << std::endl;
+                    char buffer[4096];  // Буфер для чтения данных частями
+                    while (file.read(buffer, sizeof(buffer))) 
+                    {
+                        std::cerr << "file reading2 ... " << filePath << "!" << std::endl;
+                        response << buffer;
+                    }
+                    //response << buffer;  // Отправляем остаток данных
+                    if (file.gcount() > 0) { // If there are remaining bytes
+                    std::cerr << "file reading3 ... " << filePath << "!" << std::endl;
+                        response.write(buffer, file.gcount());
+                    }
+                    response << "\r\n";
+                    file.close();
+                }
+            }
             break;
         default:
             response << "<html><body><h1>500 Internal Server Error</h1><p>Something went wrong.</p></body></html>";
