@@ -16,12 +16,13 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            gap: 20px;
         }
         h1 {
             font-size: 2.5em;
             text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
         }
-        .upload-btn {
+        .btn {
             background: #5832e0;
             color: white;
             border: none;
@@ -34,25 +35,59 @@
             align-items: center;
             gap: 10px;
         }
-        .upload-btn:hover {
+        .btn:hover {
             background: #1c65ee;
-        }
-        .upload-btn img {
-            width: 24px;
-            height: 24px;
         }
         input[type="file"] {
             display: none;
+        }
+        .input-field {
+            padding: 10px;
+            font-size: 1em;
+            width: 250px;
+            text-align: center;
+            border-radius: 5px;
+            border: none;
         }
     </style>
 </head>
 <body>
     <h1>Welcome to our webserver!</h1>
-    
-    <label class="upload-btn">
+
+    <label class="btn">
         Upload file
         <input type="file">
     </label>
+
+    <input type="text" id="filename" class="input-field" placeholder="Enter file name to delete">
+    <button class="btn" onclick="deleteFile()">Delete file</button>
+    <p id="response"></p>
+
+    <script>
+        function deleteFile() {
+            const filename = document.getElementById("filename").value.trim();
+            if (!filename) {
+                alert("Введите имя файла!");
+                return;
+            }
+
+            fetch(`http://localhost:8001/bbb/${filename}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.status === 204) {
+                    alert('Файл успешно удалён!');
+                } else if (response.status === 404) {
+                    alert('Файл не найден.');
+                } else {
+                    alert('Ошибка: ' + response.status);
+                }
+            })
+            .catch(error => console.error('Ошибка:', error));
+        }
+    </script>
+
+    
 </body>
 </html>
 
