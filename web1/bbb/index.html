@@ -14,6 +14,36 @@
         Upload file 
         <input type="file">
     </label>
+
+    <input type="text" id="filename" class="input-field" placeholder="Enter file name to delete">
+    <button class="btn" onclick="deleteFile()">Delete file</button>
+    <p id="response"></p>
+
+    <script>
+        function deleteFile() {
+            const filename = document.getElementById("filename").value.trim();
+            if (!filename) {
+                alert("Введите имя файла!");
+                return;
+            }
+
+            fetch(`http://localhost:8001/bbb/${filename}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.status === 204) {
+                    alert('Файл успешно удалён!');
+                } else if (response.status === 404) {
+                    alert('Файл не найден.');
+                } else {
+                    alert('Ошибка: ' + response.status);
+                }
+            })
+            .catch(error => console.error('Ошибка:', error));
+        }
+    </script>
+
+    
 </body>
 </html>
 
