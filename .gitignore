@@ -2,3 +2,6 @@
 obj
 webserver
 .gitignore
+tester/
+YoupiBanane/
+cgi_tester

@@ -246,6 +246,14 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
         return Response(Response::ERROR, 404, "Path Not Found");
     }
 
+    if (method == "DELETE") {
+        if (std::remove(localPath.c_str()) == 0) {
+            return Response(Response::FILE, 204, "File deleted", "", localPath);
+        } else {
+            return Response(Response::ERROR, 500, "Failed to delete file");
+        }
+    }
+
     /* for what? we check it in findLocalPath
     if (!fileExists(localPath)) {
         return Response(Response::ERROR, 404, "File Not Found");
@@ -274,6 +282,21 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
  // Метод для формирования HTTP-ответа
 const char* Response::toHttpResponse() const {
     std::ostringstream response;
+
+    if (type == FILE && code == 204) { // DELETE запрос успешно выполнен
+        std::cerr << "DELETE!   filePath: " << filePath << std::endl;
+        response << "HTTP/1.1 204 No Content\r\n";
+        response << "Content-Length: 0\r\n";
+        response << "Connection: close\r\n";
+        response << "\r\n";
+
+        std::string responseStr = response.str();
+        char* httpResponse = new char[responseStr.size() + 1];
+        std::strcpy(httpResponse, responseStr.c_str());
+        return httpResponse;
+
+        //проверка curl -X DELETE http://localhost:8001/bbb/1.txt
+    }
 
     // Определяем Content-Type по расширению файла
     std::string contentType = "text/html"; // По умолчанию HTML
@@ -333,7 +356,19 @@ const char* Response::toHttpResponse() const {
             response << message; // message уже содержит HTML-список папок
             break;
         case FILE:
-            {    
+        {
+            //предложение от жпт, посмотреть
+                std::ifstream file(filePath.c_str(), std::ios::binary);
+                if (!file) {
+                    std::cerr << "Error reading file " << filePath << "!" << std::endl;
+                } else {
+                    std::ostringstream fileContent;
+                    fileContent << file.rdbuf();
+                    response << fileContent.str();
+                    file.close();
+                }
+            }
+            /*{    
                 std::ifstream file(filePath.c_str());
                 if (!file)
                     std::cerr << "Error reading file " << filePath << "!" << std::endl;
@@ -343,7 +378,7 @@ const char* Response::toHttpResponse() const {
                 std::cerr << buffer;
                 file.close();
                 response << buffer;
-            }               
+            }     */          
             break;
         default:
             response << "<html><body><h1>500 Internal Server Error</h1><p>Something went wrong.</p></body></html>";
