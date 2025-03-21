@@ -26,6 +26,8 @@ public:
     Response handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize);
     const char* toHttpResponse() const;
     std::string getPath(const ServerConfig& config, const std::string& url);
+    int getLocation(const ServerConfig& config, const std::string& url);
+    std::string findLocalPath(const ServerConfig& config, const std::string& url, int location_index);
 
 private:
     Type type;
@@ -33,6 +35,7 @@ private:
     std::string message;
     std::string destination;
     std::string filePath;
+    std::string urlLocal;
 };
 
 #endif // HTTPRESPONSE_HPP
