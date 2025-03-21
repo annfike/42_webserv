@@ -5,13 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webserver</title>
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="./styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: url("./background.jpg") no-repeat center center/cover;
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        h1 {
+            font-size: 2.5em;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        .upload-btn {
+            background: #5832e0;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .upload-btn:hover {
+            background: #1c65ee;
+        }
+        .upload-btn img {
+            width: 24px;
+            height: 24px;
+        }
+        input[type="file"] {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <h1>Welcome to our webserver!</h1>
     
     <label class="upload-btn">
-        Upload file 
+        Upload file
         <input type="file">
     </label>
 </body>

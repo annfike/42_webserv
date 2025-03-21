@@ -58,18 +58,18 @@ void Server::execRead(Connection con)
 	std::cerr << request.hostName << std::endl;
 	ServerConfig& config = con.getConfig(request.hostName);
 	Response response = response.handleRequest(config, request.getMethod(), request.getUrl(), request.getBody().size());
-	//response.print();
+	response.print();
 
 	//TODO if (connection == close)
 	//	close(fd);
 
 	//con.config.locations;
 
-	//if (request.getUrl() == "/favicon.ico")
-	//{
-	//	socketManager.closeConnection(con);
-	//	return;
-	//}
+	if (request.getUrl() == "/favicon.ico")
+	{
+		socketManager.closeConnection(con);
+		return;
+	}
 
 	const char * http_response = response.toHttpResponse();
 	std::cout  << std::endl << "----------------------------------------------------------" << std::endl;
@@ -77,7 +77,6 @@ void Server::execRead(Connection con)
 	// Отправка ответа клиенту
 	//if (false)
 	send(con.poll.fd, http_response, strlen(http_response), MSG_DONTWAIT | MSG_NOSIGNAL);
-	//delete http_response;
 	socketManager.closeConnection(con);
 }
 
