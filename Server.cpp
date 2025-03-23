@@ -72,7 +72,6 @@ void Server::execRead(Connection con)
 	//}
 
 	const char * http_response = response.toHttpResponse();
-	std::cout  << std::endl << "----------------------------------------------------------" << std::endl;
 	
 	// Отправка ответа клиенту
 	//if (false)

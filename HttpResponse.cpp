@@ -355,6 +355,9 @@ const char* Response::toHttpResponse() const {
             std::streamsize fileSize = file.tellg(); 
             file.seekg(0, std::ios::beg);
             response << "Content-Length: " << fileSize << "\r\n";
+            response << "Cache-Control: no-cache, no-store, must-revalidate\r\n";
+            response << "Pragma: no-cache\r\n";
+            response << "Expires: 0\r\n";
             file.close();
         }
     }
@@ -373,8 +376,9 @@ const char* Response::toHttpResponse() const {
             response << message; // message уже содержит HTML-список папок
             break;
         case FILE:
-            {    
-                std::ifstream file(filePath.c_str(), std::ios::binary);
+            {
+                std::cerr << "file reading ... " << filePath << "!" << std::endl;
+                std::ifstream file(filePath.c_str());
                 if (!file)
                     std::cerr << "Error reading file " << filePath << std::endl;
                 else
@@ -386,6 +390,7 @@ const char* Response::toHttpResponse() const {
                     std::cerr << buffer;
                     file.close();
                     response << buffer;*/
+                    
                     std::cerr << "file reading ... " << filePath << "!" << std::endl;
                     char buffer[4096];  // Буфер для чтения данных частями
                     while (file.read(buffer, sizeof(buffer))) 
@@ -398,10 +403,9 @@ const char* Response::toHttpResponse() const {
                     std::cerr << "file reading3 ... " << filePath << "!" << std::endl;
                         response.write(buffer, file.gcount());
                     }
-                    response << "\r\n";
                     file.close();
                 }
-            }               
+            }
             break;
         default:
             response << "<html><body><h1>500 Internal Server Error</h1><p>Something went wrong.</p></body></html>";
@@ -413,10 +417,9 @@ const char* Response::toHttpResponse() const {
     char* httpResponse = new char[responseStr.size() + 1];
     std::strcpy(httpResponse, responseStr.c_str());
     
-    std::cerr << "---RESPONSE---" << std::endl;
-    std::cerr << httpResponse << std::endl;
-    std::cerr << std::endl;
-
+    std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
+    std::cout << httpResponse << std::endl;
+    std::cout  << std::endl << "----------------------------------------------------------" << std::endl;
     return httpResponse;
 }
 
