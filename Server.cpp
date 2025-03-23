@@ -63,20 +63,10 @@ void Server::execRead(Connection con)
 	//TODO if (connection == close)
 	//	close(fd);
 
-	//con.config.locations;
-
-	//if (request.getUrl() == "/favicon.ico")
-	//{
-	//	socketManager.closeConnection(con);
-	//	return;
-	//}
-
-	const char * http_response = response.toHttpResponse();
-	
+	const std::string http_response = response.toHttpResponse();
 	// Отправка ответа клиенту
-	//if (false)
-	send(con.poll.fd, http_response, strlen(http_response), MSG_DONTWAIT | MSG_NOSIGNAL);
-	//delete http_response;
+	send(con.poll.fd, http_response.c_str(), http_response.size(), MSG_DONTWAIT | MSG_NOSIGNAL);
+	
 	socketManager.closeConnection(con);
 }
 

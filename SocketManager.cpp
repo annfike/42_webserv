@@ -194,6 +194,7 @@ void SocketManager::closeConnection(Connection con)
 	{
 		if (connections[j].poll.fd == con.poll.fd) 
 		{
+			//shutdown(con.poll.fd, SHUT_WR);
 			close(con.poll.fd);
 			connections.erase(connections.begin() + j);
 			

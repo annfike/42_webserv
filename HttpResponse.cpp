@@ -285,8 +285,8 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     return Response(Response::FILE, 200, "", "", localPath);
 }
 
- // Метод для формирования HTTP-ответа
-const char* Response::toHttpResponse() const {
+// Метод для формирования HTTP-ответа
+const std::string Response::toHttpResponse() const {
     std::ostringstream response;
 
     if (type == FILE && code == 204) { // DELETE запрос успешно выполнен
@@ -349,15 +349,11 @@ const char* Response::toHttpResponse() const {
     }
     if (type == FILE)
     {
-        std::ifstream file(filePath.c_str(), std::ios::binary | std::ios::ate);
+        std::ifstream file(filePath.c_str(), std::ifstream::binary | std::ifstream::ate);
         if (file)
         {
             std::streamsize fileSize = file.tellg(); 
-            file.seekg(0, std::ios::beg);
             response << "Content-Length: " << fileSize << "\r\n";
-            response << "Cache-Control: no-cache, no-store, must-revalidate\r\n";
-            response << "Pragma: no-cache\r\n";
-            response << "Expires: 0\r\n";
             file.close();
         }
     }
@@ -383,24 +379,12 @@ const char* Response::toHttpResponse() const {
                     std::cerr << "Error reading file " << filePath << std::endl;
                 else
                 {
-                    /*std::cerr << "Success reading file " << filePath << "!!!" << std::endl;
-                    char buffer[2200000];
-                    file.read(buffer, sizeof(buffer));
-                    buffer[file.tellg()] = '\0';
-                    std::cerr << buffer;
-                    file.close();
-                    response << buffer;*/
-                    
-                    std::cerr << "file reading ... " << filePath << "!" << std::endl;
                     char buffer[4096];  // Буфер для чтения данных частями
-                    while (file.read(buffer, sizeof(buffer))) 
+                    while (file.read(buffer, 4096))
                     {
-                        std::cerr << "file reading2 ... " << filePath << "!" << std::endl;
-                        response << buffer;
+                        response.write(buffer, file.gcount());
                     }
-                    //response << buffer;  // Отправляем остаток данных
                     if (file.gcount() > 0) { // If there are remaining bytes
-                    std::cerr << "file reading3 ... " << filePath << "!" << std::endl;
                         response.write(buffer, file.gcount());
                     }
                     file.close();
@@ -412,15 +396,10 @@ const char* Response::toHttpResponse() const {
             break;
     }
 
-    // Преобразуем поток в строку и возвращаем как C-строку
-    std::string responseStr = response.str();
-    char* httpResponse = new char[responseStr.size() + 1];
-    std::strcpy(httpResponse, responseStr.c_str());
-    
     std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
-    std::cout << httpResponse << std::endl;
+    std::cout << response.str().substr(0, 500) << std::endl;
     std::cout  << std::endl << "----------------------------------------------------------" << std::endl;
-    return httpResponse;
+    return response.str();
 }
 
 
