@@ -398,7 +398,7 @@ const std::string Response::toHttpResponse() const {
 
     std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
     std::cout << response.str().substr(0, 500) << std::endl;
-    std::cout  << std::endl << "----------------------------------------------------------" << std::endl;
+    std::cout << "----------------------------------------------------------" << std::endl;
     return response.str();
 }
 
