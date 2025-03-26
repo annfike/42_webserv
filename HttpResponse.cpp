@@ -31,7 +31,7 @@ int Response::getLocation(const ServerConfig& config, const std::string& url) {
     while (url_to_test != "/") {
         // Ищем путь в locations
         for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
-             it != config.locations.end(); ++it) {
+            it != config.locations.end(); ++it) {
             std::cerr << "location: " << it->first << "+++";
             if (it->first == url_to_test) {
                 urlLocal = url.substr(it->first.length());
@@ -54,7 +54,7 @@ int Response::getLocation(const ServerConfig& config, const std::string& url) {
     }
     // Проверка корневого пути
     for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
-         it != config.locations.end(); ++it) {
+        it != config.locations.end(); ++it) {
         if (it->first == "/") {
             return std::distance(config.locations.begin(), it);
         }
@@ -65,7 +65,7 @@ int Response::getLocation(const ServerConfig& config, const std::string& url) {
 const ServerConfig::Location* getLocationByIndex(const ServerConfig& config, int index) {
     int i = 0;
     for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
-         it != config.locations.end(); ++it, ++i) {
+        it != config.locations.end(); ++it, ++i) {
         if (i == index) {
             return &(it->second);
         }
@@ -77,7 +77,7 @@ bool isMethodAllowed(const ServerConfig& config, const std::string& method, int 
     const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
     // Проверяем, есть ли метод в списке разрешенных методов
     for (std::vector<std::string>::const_iterator methodIt = location.methods.begin();
-         methodIt != location.methods.end(); ++methodIt) {
+        methodIt != location.methods.end(); ++methodIt) {
         std::cerr << "method: " << method << "---";
         std::cerr << *methodIt << "+++";
         if (*methodIt == method) {
@@ -111,7 +111,7 @@ std::string findRedirectPath(const ServerConfig& config, int location_index) {
 
 std::string Response::findLocalPath(const ServerConfig& config, const std::string& url, int location_index) {
     const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
-    std::string fullpath = location.root + urlLocal;
+	std::string fullpath = location.root + urlLocal;
     std::cerr << "\nlocation.root: " << url << " +++ " <<  location.root << " +++ " << fullpath << "+++ \n" ;
     if (!fullpath.empty() && fullpath[0] == '/') {
         fullpath.erase(0, 1); // Удаляем первый символ
@@ -214,7 +214,7 @@ std::string Response::getPath(const ServerConfig& config, const std::string& url
         fullpath.erase(0, 1); // Удаляем первый символ
     }
     if (fullpath.empty() || url[url.length() - 1] == '/')
-		fullpath = fullpath + "index.html";
+        fullpath = fullpath + "index.html";
     return fullpath;
 }
 
@@ -233,7 +233,7 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     if (!isBodySizeValid(config, bodySize)) {
         return Response(Response::ERROR, 413, "Payload Too Large");
     }
-
+	
     std::string redirectPath = findRedirectPath(config, location_index);
     if (!redirectPath.empty()) {
         int status_code;
@@ -245,9 +245,9 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
             url.erase(0, 1);
         return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
-
-    std::string localPath = findLocalPath(config, url, location_index);
-    std::cerr << "\nlocation index: " << url << " +++ " << location_index << " +++ " << localPath << " +++ \n" ;
+	
+	std::string localPath = findLocalPath(config, url, location_index);
+    std::cerr << "\nlocation index1: " << url << " +++ " << location_index << " +++ " << localPath << " +++ \n" ;
     if (localPath.empty()) {
         return Response(Response::ERROR, 404, "Path Not Found");
     }
@@ -267,12 +267,14 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
 
     if (isFolder(localPath)) {
         std::cout << "Folder: " << localPath << std::endl;
-        if (hasIndexFile(localPath)) {
+        if (localPath.empty() || url[url.length() - 1] != '/')
+            return Response(Response::REDIRECT, 301, "", url + "/", "");
+        else if (hasIndexFile(localPath)) {
             //return Response(Response::ERROR, 403, "Forbidden");
             if (isCGIExtension(localPath))
                 return Response(Response::FILE, 200, "CGI Execution", "", localPath + "/index.html");
             else
-                return Response(Response::FILE, 200, "", "", localPath + "/index.html");
+                return Response(Response::REDIRECT, 301, "", url + "index.html");
         } else if (isAutoIndexEnabled(config, location_index)) {
             std::cout << "Autoindex enabled" << std::endl;
             return generateFolderList(localPath);
