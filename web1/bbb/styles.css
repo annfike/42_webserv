@@ -36,3 +36,9 @@ h1 {
 input[type="file"] {
 	display: none;
 }
+
+.input-field {
+	padding: 15px 30px;
+	margin-top: 20px;
+	margin-bottom: 10px;
+  }
