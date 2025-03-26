@@ -25,9 +25,7 @@ public:
     void print() const;
     Response handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize);
     const std::string toHttpResponse() const;
-    std::string getPath(const ServerConfig& config, const std::string& url);
     int getLocation(const ServerConfig& config, const std::string& url);
-    std::string findLocalPath(const ServerConfig& config, const std::string& url, int location_index);
 
 private:
     Type type;

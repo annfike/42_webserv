@@ -72,8 +72,7 @@ const ServerConfig::Location* getLocationByIndex(const ServerConfig& config, int
     return NULL;
 }
 
-bool isMethodAllowed(const ServerConfig& config, const std::string& method, int location_index) {
-    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
+bool isMethodAllowed(const ServerConfig::Location& location, const std::string& method) {
     // Проверяем, есть ли метод в списке разрешенных методов
     for (std::vector<std::string>::const_iterator methodIt = location.methods.begin();
         methodIt != location.methods.end(); ++methodIt) {
@@ -98,9 +97,8 @@ bool isBodySizeValid(const ServerConfig& config, size_t size) {
     return size <= maxBodySize;
 }
 
-std::string findRedirectPath(const ServerConfig& config, int location_index) {
+std::string findRedirectPath(const ServerConfig::Location& location) {
     //разделить 301 и гугл
-    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
     std::cerr << "location.path: " << location.path << " redirect: " << location.redirect << "+++";
     if (!location.redirect.empty()) {
         return location.redirect;
@@ -108,13 +106,8 @@ std::string findRedirectPath(const ServerConfig& config, int location_index) {
     return "";
 }
 
-std::string Response::findLocalPath(const ServerConfig& config, const std::string& url, int location_index) {
-    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
-	std::cerr << "12357\n";
-    std::cerr << urlLocal << "8";
+std::string findLocalPath(const ServerConfig::Location& location, const std::string& urlLocal) {
 	std::string fullpath = location.root + urlLocal;
-	std::cerr << "12358\n";
-    std::cerr << "\nlocation.root: " << url << " +++ " <<  location.root << " +++ " << fullpath << "+++ \n" ;
     if (!fullpath.empty() && fullpath[0] == '/') {
         fullpath.erase(0, 1); // Удаляем первый символ
     }
@@ -142,14 +135,14 @@ bool isFolder(const std::string& path) {
     return (info.st_mode & S_IFDIR) != 0;
 }
 
-bool hasIndexFile(const std::string& folderPath) {
+std::string getIndexFile(const ServerConfig::Location& location, const std::string& folderPath) {
     // Список возможных индексных файлов
-    const std::string indexFiles[] = {"index.html", "index.php", "index.htm"};
+    const std::string indexFiles[] = {location.index, "index.html", "index.php", "index.htm"};
     const int numIndexFiles = sizeof(indexFiles) / sizeof(indexFiles[0]);
     DIR* dir = opendir(folderPath.c_str());
     if (!dir) {
         std::cerr << "Ошибка открытия директории: " << folderPath << std::endl;
-        return false;
+        return "";
     }
     // Читаем содержимое директории
     struct dirent* entry;
@@ -158,18 +151,12 @@ bool hasIndexFile(const std::string& folderPath) {
         for (int i = 0; i < numIndexFiles; ++i) {
             if (fileName == indexFiles[i]) {
                 closedir(dir);
-                return true;
+                return fileName;
             }
         }
     }
     closedir(dir);
-    return false;
-}
-
-bool isAutoIndexEnabled(const ServerConfig& config, int location_index) {
-    //  включен ли автоиндекс
-    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
-    return location.autoindex;
+    return "";
 }
 
 static Response generateFolderList(const std::string& folderPath) {
@@ -206,30 +193,17 @@ bool isCGIExtension(const std::string& extension) {
     return false;
 }
 
-std::string Response::getPath(const ServerConfig& config, const std::string& url)
-{
-    int location_index = getLocation(config, url);
-    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
-    std::string fullpath = location.root + url;
-    if (!fullpath.empty() && fullpath[0] == '/')
-    {
-        fullpath.erase(0, 1); // Удаляем первый символ
-    }
-    if (fullpath.empty() || url[url.length() - 1] == '/')
-        fullpath = fullpath + "index.html";
-    return fullpath;
-}
-
 Response Response::handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize) {
     urlLocal = "";
     int location_index = getLocation(config, url);
+    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
     std::cerr << "location index: " << location_index << "+++";
     if (location_index == -1) {
         std::cerr << "nooo getlocation" << std::endl;
         return Response(Response::ERROR, 404, "Not Found");
     }
 
-    if (!isMethodAllowed(config, method, location_index)) {
+    if (!isMethodAllowed(location, method)) {
         return Response(Response::ERROR, 405, "Method Not Allowed");
     }
 
@@ -237,7 +211,7 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
         return Response(Response::ERROR, 413, "Payload Too Large");
     }
 	
-    std::string redirectPath = findRedirectPath(config, location_index);
+    std::string redirectPath = findRedirectPath(location);
     if (!redirectPath.empty()) {
         int status_code;
         std::string url;
@@ -249,8 +223,8 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
         return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
 	
-	std::string localPath = findLocalPath(config, url, location_index);
-    std::cerr << "\nlocation index1: " << url << " +++ " << location_index << " +++ " << localPath << " +++ \n" ;
+	std::string localPath = findLocalPath(location, urlLocal);
+    std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
     if (localPath.empty()) {
         return Response(Response::ERROR, 404, "Path Not Found");
     }
@@ -270,15 +244,15 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
 
     if (isFolder(localPath)) {
         std::cout << "Folder: " << localPath << std::endl;
+        std::string iFile;
         if (localPath.empty() || url[url.length() - 1] != '/')
             return Response(Response::REDIRECT, 301, "", url + "/", "");
-        else if (hasIndexFile(localPath)) {
-            //return Response(Response::ERROR, 403, "Forbidden");
+        else if (!(iFile = getIndexFile(location, localPath)).empty()) {
             if (isCGIExtension(localPath))
                 return Response(Response::FILE, 200, "CGI Execution", "", localPath + "/index.html");
             else
-                return Response(Response::REDIRECT, 301, "", url + "index.html");
-        } else if (isAutoIndexEnabled(config, location_index)) {
+                return Response(Response::REDIRECT, 301, "", url + iFile);
+        } else if (location.autoindex) {
             std::cout << "Autoindex enabled" << std::endl;
             return generateFolderList(localPath);
         } else
