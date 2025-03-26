@@ -28,16 +28,14 @@ int Response::getLocation(const ServerConfig& config, const std::string& url) {
     std::string url_to_test = url;
     // Поиск по полному пути или его частям
     std::cerr << "urlToTest " <<  url_to_test << "\n";
-    while (url_to_test != "/") {
+    while (!url_to_test.empty() && url_to_test != "/") {
         // Ищем путь в locations
         for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
             it != config.locations.end(); ++it) {
             std::cerr << "location: " << it->first << "+++";
             if (it->first == url_to_test) {
                 urlLocal = url.substr(it->first.length());
-                if (urlLocal == "/")
-                    urlLocal = "";
-                std::cerr << "urlLocal " <<  urlLocal << "\n";
+                std::cerr << "\nurlLocal " <<  urlLocal << "\n";
                 // Возвращаем индекс (позицию) найденного Location
                 return std::distance(config.locations.begin(), it);
             }
@@ -56,6 +54,7 @@ int Response::getLocation(const ServerConfig& config, const std::string& url) {
     for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
         it != config.locations.end(); ++it) {
         if (it->first == "/") {
+            urlLocal = url;
             return std::distance(config.locations.begin(), it);
         }
     }
@@ -111,7 +110,10 @@ std::string findRedirectPath(const ServerConfig& config, int location_index) {
 
 std::string Response::findLocalPath(const ServerConfig& config, const std::string& url, int location_index) {
     const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
+	std::cerr << "12357\n";
+    std::cerr << urlLocal << "8";
 	std::string fullpath = location.root + urlLocal;
+	std::cerr << "12358\n";
     std::cerr << "\nlocation.root: " << url << " +++ " <<  location.root << " +++ " << fullpath << "+++ \n" ;
     if (!fullpath.empty() && fullpath[0] == '/') {
         fullpath.erase(0, 1); // Удаляем первый символ
@@ -219,6 +221,7 @@ std::string Response::getPath(const ServerConfig& config, const std::string& url
 }
 
 Response Response::handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize) {
+    urlLocal = "";
     int location_index = getLocation(config, url);
     std::cerr << "location index: " << location_index << "+++";
     if (location_index == -1) {
