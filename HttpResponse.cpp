@@ -171,8 +171,9 @@ static Response generateFolderList(const std::string& folderPath) {
         if (name == "." || name == "..") continue; // Пропускаем текущую и родительскую директории
         std::string fullPath = folderPath + "/" + name;
         struct stat statBuf;
-        if (stat(fullPath.c_str(), &statBuf) == 0 && S_ISDIR(statBuf.st_mode)) {
-            folders.push_back(name); // Добавляем только папки
+        //if (stat(fullPath.c_str(), &statBuf) == 0 && S_ISDIR(statBuf.st_mode)) { // Добавляем только папки
+        if (stat(fullPath.c_str(), &statBuf) == 0) { // we add files also
+            folders.push_back(name); 
         }
     }
     closedir(dir);
