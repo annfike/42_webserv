@@ -1,7 +1,7 @@
 #include "HttpResponse.hpp"
 
 Response::Response(Type type, int code, const std::string& message, const std::string& destination, const std::string& filePath)
-    : type(type), code(code), message(message), destination(destination), filePath(filePath), urlLocal("") {}
+    : type(type), code(code), message(message), destination(destination), filePath(filePath) {}
 
 void Response::print() const {
     std::cout << "-------------------Response-------------------------------: " << std::endl;
@@ -24,20 +24,18 @@ void Response::print() const {
 }
 
 // Функция для поиска Location по URL
-int Response::getLocation(const ServerConfig& config, const std::string& url) {
+const ServerConfig::Location getLocation(const ServerConfig& config, const std::string& url, std::string* urlLocal) {
     std::string url_to_test = url;
     // Поиск по полному пути или его частям
-    std::cerr << "urlToTest " <<  url_to_test << "\n";
     while (!url_to_test.empty() && url_to_test != "/") {
         // Ищем путь в locations
         for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
             it != config.locations.end(); ++it) {
-            std::cerr << "location: " << it->first << "+++";
+            //std::cerr << "location: " << it->first << "+++";
             if (it->first == url_to_test) {
-                urlLocal = url.substr(it->first.length());
-                std::cerr << "\nurlLocal " <<  urlLocal << "\n";
+                *urlLocal = url.substr(it->first.length());
                 // Возвращаем индекс (позицию) найденного Location
-                return std::distance(config.locations.begin(), it);
+                return it->second;
             }
         }
         // Укорачиваем путь
@@ -54,22 +52,11 @@ int Response::getLocation(const ServerConfig& config, const std::string& url) {
     for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
         it != config.locations.end(); ++it) {
         if (it->first == "/") {
-            urlLocal = url;
-            return std::distance(config.locations.begin(), it);
+            *urlLocal = url;
+            return it->second;
         }
     }
-    return -1;
-}
-
-const ServerConfig::Location* getLocationByIndex(const ServerConfig& config, int index) {
-    int i = 0;
-    for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
-        it != config.locations.end(); ++it, ++i) {
-        if (i == index) {
-            return &(it->second);
-        }
-    }
-    return NULL;
+    return ServerConfig::Location();
 }
 
 bool isMethodAllowed(const ServerConfig::Location& location, const std::string& method) {
@@ -106,10 +93,10 @@ std::string findRedirectPath(const ServerConfig::Location& location) {
     return "";
 }
 
-std::string findLocalPath(const ServerConfig::Location& location, const std::string& urlLocal) {
-	std::string fullpath = location.root + urlLocal;
+std::string findLocalPath(const ServerConfig::Location& location, std::string& urlLocal) {
+    std::string fullpath = location.root + urlLocal;
     if (!fullpath.empty() && fullpath[0] == '/') {
-        fullpath.erase(0, 1); // Удаляем первый символ
+        fullpath = fullpath.substr(1); // Удаляем первый символ
     }
     // Проверка существования пути
     if (access(fullpath.c_str(), F_OK) != -1) {
@@ -195,11 +182,10 @@ bool isCGIExtension(const std::string& extension) {
 }
 
 Response Response::handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize) {
-    urlLocal = "";
-    int location_index = getLocation(config, url);
-    const ServerConfig::Location& location = *getLocationByIndex(config, location_index);
-    std::cerr << "location index: " << location_index << "+++";
-    if (location_index == -1) {
+    std::string urlLocal;
+    const ServerConfig::Location location = getLocation(config, url, &urlLocal);
+    //std::cerr << "location index: " << location_index << "+++";
+    if (location.path.empty() ) {
         std::cerr << "nooo getlocation" << std::endl;
         return Response(Response::ERROR, 404, "Not Found");
     }
@@ -211,7 +197,7 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     if (!isBodySizeValid(config, bodySize)) {
         return Response(Response::ERROR, 413, "Payload Too Large");
     }
-	
+
     std::string redirectPath = findRedirectPath(location);
     if (!redirectPath.empty()) {
         int status_code;
@@ -220,10 +206,10 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
         iss >> status_code;
         std::getline(iss, url);
         if (!url.empty() && url[0] == ' ')
-            url.erase(0, 1);
+            url = url.substr(1);
         return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
-	
+
 	std::string localPath = findLocalPath(location, urlLocal);
     std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
     if (localPath.empty()) {
@@ -381,5 +367,3 @@ const std::string Response::toHttpResponse() const {
     std::cout << "----------------------------------------------------------" << std::endl;
     return response.str();
 }
-
-
