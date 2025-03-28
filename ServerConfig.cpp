@@ -22,7 +22,11 @@ void ServerConfig::Location::print() const {
 void ServerConfig::print() const {
     std::cout << "listen: " << listen << std::endl;
     std::cout << "listen_IP: " << listen_IP << std::endl;
-    std::cout << "error_page: " << error_page << std::endl;
+    std::cout << "error_pages: " << error_pages.size() << std::endl;
+    for (std::map<int, std::string>::const_iterator it = error_pages.begin(); it != error_pages.end(); ++it) {
+        std::cout << "  " << it->first << ": " << it->second << std::endl;
+    }
+    
     std::cout << "server_name: " << server_name << std::endl;
     std::cout << "client_max_body_size: " << client_max_body_size << std::endl;
     for (std::map<std::string, Location>::const_iterator it = locations.begin(); it != locations.end(); ++it) {

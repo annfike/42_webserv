@@ -31,7 +31,7 @@ const ServerConfig::Location getLocation(const ServerConfig& config, const std::
         // Ищем путь в locations
         for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
             it != config.locations.end(); ++it) {
-            //std::cerr << "location: " << it->first << "+++";
+            std::cerr << "location: " << it->first << "+++";
             if (it->first == url_to_test) {
                 *urlLocal = url.substr(it->first.length());
                 // Возвращаем индекс (позицию) найденного Location
@@ -146,11 +146,20 @@ std::string getIndexFile(const ServerConfig::Location& location, const std::stri
     return "";
 }
 
-static Response generateFolderList(const std::string& folderPath) {
+Response getErrorResponse(const ServerConfig& config, int code, std::string message) 
+{
+    std::map<int, std::string>::const_iterator err = config.error_pages.find(code);
+    if (err != config.error_pages.end())
+        return Response(Response::REDIRECT, 301, "", err->second);
+        
+    return Response(Response::ERROR, code, message);
+}
+
+Response generateFolderList(const ServerConfig& config, const std::string& folderPath) {
     std::vector<std::string> folders;
     DIR* dir = opendir(folderPath.c_str());
     if (!dir) {
-        return Response(Response::ERROR, 404, "Directory not found");
+        return getErrorResponse(config, 404, "Directory not found");
     }
     struct dirent* entry;
     while ((entry = readdir(dir))) {
@@ -187,16 +196,14 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     //std::cerr << "location index: " << location_index << "+++";
     if (location.path.empty() ) {
         std::cerr << "nooo getlocation" << std::endl;
-        return Response(Response::ERROR, 404, "Not Found");
+        return getErrorResponse(config, 404, "Not Found");
     }
 
-    if (!isMethodAllowed(location, method)) {
-        return Response(Response::ERROR, 405, "Method Not Allowed");
-    }
+    if (!isMethodAllowed(location, method)) 
+        return getErrorResponse(config, 405, "Method Not Allowed");
 
-    if (!isBodySizeValid(config, bodySize)) {
-        return Response(Response::ERROR, 413, "Payload Too Large");
-    }
+    if (!isBodySizeValid(config, bodySize)) 
+        return getErrorResponse(config, 413, "Payload Too Large");
 
     std::string redirectPath = findRedirectPath(location);
     if (!redirectPath.empty()) {
@@ -212,16 +219,22 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
 
 	std::string localPath = findLocalPath(location, urlLocal);
     std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
-    if (localPath.empty()) {
-        return Response(Response::ERROR, 404, "Path Not Found");
-    }
+
+    if (localPath.empty()) 
+        return getErrorResponse(config, 404, "Path Not Found");
 
     if (method == "DELETE") {
-        if (std::remove(localPath.c_str()) == 0) {
+        if (std::remove(localPath.c_str()) == 0) 
             return Response(Response::FILE, 204, "File deleted", "", localPath);
-        } else {
-            return Response(Response::ERROR, 500, "Failed to delete file");
-        }
+        else 
+            return getErrorResponse(config, 500, "Failed to delete file");
+    }
+
+    if (method == "POST") {
+        if (std::remove(localPath.c_str()) == 0) 
+            return Response(Response::FILE, 204, "File deleted", "", localPath);
+        else 
+            return getErrorResponse(config, 500, "Failed to upload file");
     }
 
     /* for what? we check it in findLocalPath
@@ -241,9 +254,9 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
                 return Response(Response::REDIRECT, 301, "", url + iFile);
         } else if (location.autoindex) {
             std::cout << "Autoindex enabled" << std::endl;
-            return generateFolderList(localPath);
+            return generateFolderList(config, localPath);
         } else
-            return Response(Response::ERROR, 403, "Forbidden");
+            return getErrorResponse(config, 403, "Forbidden");
     }
 
     if (isCGIExtension(localPath))

@@ -29,7 +29,7 @@ public:
 
     std::string listen;
     std::string listen_IP;
-    std::string error_page;
+    std::map<int, std::string> error_pages; //code-path
     std::string server_name;
     std::string client_max_body_size;
     std::map<std::string, Location> locations;

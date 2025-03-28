@@ -83,8 +83,14 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                 size_t start = line.find(" ");
                 size_t end = line.find(";");
                 if (start != std::string::npos && end != std::string::npos) {
-                    current_server.error_page = line.substr(start + 1, end - start - 1);
-                    trim(current_server.error_page);
+                    std::string err = line.substr(start + 1, end - start - 1);
+                    trim(err);
+                    int status_code;
+                    std::string path;
+                    std::istringstream iss(err);
+                    iss >> status_code >> path;
+                    current_server.error_pages[status_code] = path;
+                   
                     //std::cout << "Parsed error_page: " << current_server.error_page << std::endl;  // Debug
                 }
             } else if (line.find("server_name") != std::string::npos) {

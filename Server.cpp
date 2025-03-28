@@ -23,6 +23,16 @@ void Server::parseConfig(const std::string &config)
 		throw std::runtime_error("No servers found in configuration file!");
 	}
 
+	ServerConfig::Location errLoc;
+	errLoc.methods.push_back("GET");
+	errLoc.root = "/pages/error_pages";
+	errLoc.path = "/pages/error_pages";
+	errLoc.autoindex = false;
+	for (size_t i = 0; i < servers.size(); ++i)
+	{
+		servers[i].locations[errLoc.root] = errLoc;
+	}
+
 	for (size_t i = 0; i < servers.size(); ++i)
 	{
 		std::cout << "-----------------Server " << i << ":----------------------------" << std::endl;
