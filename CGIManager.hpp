@@ -37,7 +37,6 @@ class CgiHandler {
     void executeCgiProcess(short& error_code);
     void setCgiPath(const std::string& cgi_path);
     void setCgiPid(pid_t cgi_pid);
-    void resetCgiHandler();
 
     const pid_t& getCgiPid() const;
     const std::string& getCgiPath() const;

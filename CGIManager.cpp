@@ -293,13 +293,3 @@ std::string CgiHandler::extractPathInfoFromExtension(std::string& path, std::vec
     queryPos = extractedPathInfo.find("?");
     return (queryPos == std::string::npos ? extractedPathInfo : extractedPathInfo.substr(0, queryPos));
 }
-
-void CgiHandler::resetCgiHandler()
-{
-    this->cgi_args      = NULL;
-    this->cgi_pid       = -1;
-    this->cgi_path      = "";
-    this->cgi_envs      = NULL;
-    this->status_exit   = 0;
-    this->cgi_env_variables.clear();
-}
