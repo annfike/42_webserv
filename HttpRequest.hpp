@@ -11,9 +11,11 @@ class HttpRequestParser {
 private:
     std::string method;
     std::string url;
+    std::string path;
     std::string httpVersion;
     std::map<std::string, std::string> headers;
     std::string body;
+    std::string query;
 
 public:
     HttpRequestParser();
@@ -23,6 +25,11 @@ public:
     const std::string& getMethod() const;
     const std::string& getUrl() const;
     const std::string& getBody() const;
+    const std::string& HttpRequestParser::getHeader(const std::string& key) const;
+    std::map<std::string, std::string>& HttpRequestParser::getHeaders();
+    std::string &HttpRequestParser::getQuery();
+    std::string &HttpRequestParser::getPath();
+
     std::string hostName;
 };
 

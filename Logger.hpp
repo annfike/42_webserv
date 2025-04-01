@@ -16,7 +16,7 @@
 #define COLOR_YELLOW "\001\033[33m\002"
 #define COLOR_CYAN "\001\033[36m\002"
 #define COLOR_WHITE "\001\033[48;5;7m\002"
-#define COLOR_UNDERLINE   "\001\033[4m\002"
+#define COLOR_UNDERLINE "\001\033[4m\002"
 #define RESET_COLOR "\001\033[0m\002"
 
 enum LogLevel {
