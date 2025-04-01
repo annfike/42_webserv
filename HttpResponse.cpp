@@ -95,6 +95,7 @@ std::string findRedirectPath(const ServerConfig::Location& location) {
 
 std::string findLocalPath(const ServerConfig::Location& location, std::string& urlLocal) {
     std::string fullpath = location.root + urlLocal;
+    std::cerr << "/*" << fullpath << "|" << location.root << "|" << urlLocal << "|" << "*/";
     if (!fullpath.empty() && fullpath[0] == '/') {
         fullpath = fullpath.substr(1); // Удаляем первый символ
     }
@@ -190,8 +191,9 @@ bool isCGIExtension(const std::string& extension) {
     return false;
 }
 
-Response Response::handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize) {
+Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
     std::string urlLocal;
+    std::string url = request.getUrl();
     const ServerConfig::Location location = getLocation(config, url, &urlLocal);
     //std::cerr << "location index: " << location_index << "+++";
     if (location.path.empty() ) {
@@ -199,10 +201,10 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
         return getErrorResponse(config, 404, "Not Found");
     }
 
-    if (!isMethodAllowed(location, method)) 
+    if (!isMethodAllowed(location, request.getMethod())) 
         return getErrorResponse(config, 405, "Method Not Allowed");
 
-    if (!isBodySizeValid(config, bodySize)) 
+    if (!isBodySizeValid(config, request.getBody().size())) 
         return getErrorResponse(config, 413, "Payload Too Large");
 
     std::string redirectPath = findRedirectPath(location);
@@ -223,18 +225,38 @@ Response Response::handleRequest(const ServerConfig& config, const std::string& 
     if (localPath.empty()) 
         return getErrorResponse(config, 404, "Path Not Found");
 
-    if (method == "DELETE") {
+    if (request.getMethod() == "DELETE") 
+    {
         if (std::remove(localPath.c_str()) == 0) 
             return Response(Response::FILE, 204, "File deleted", "", localPath);
         else 
             return getErrorResponse(config, 500, "Failed to delete file");
     }
 
-    if (method == "POST") {
-        if (std::remove(localPath.c_str()) == 0) 
-            return Response(Response::FILE, 204, "File deleted", "", localPath);
+    if (request.getMethod() == "POST")
+    {
+        std::string folder = location.upload_store;
+        if (folder.empty())
+            folder = location.root;
+        std::string filename = folder.substr(1) + "/1.txt";
+
+        // Создаем папку, если её нет
+        //if (!std::filesystem::exists(location.upload_store))
+        //{
+        //    return getErrorResponse(config, 500, "Upload folder not exists!");
+        //}
+
+        std::cerr << filename;
+
+        // Сохраняем тело запроса в файл
+        std::ofstream outFile(filename.c_str(), std::ios::binary);
+        if (outFile) {
+            outFile << request.getBody();
+            outFile.close();
+            return Response(Response::FILE, 200, "File uploaded successfully!", "", localPath);
+        }
         else 
-            return getErrorResponse(config, 500, "Failed to upload file");
+            return getErrorResponse(config, 500, "Error saving file!");
     }
 
     /* for what? we check it in findLocalPath

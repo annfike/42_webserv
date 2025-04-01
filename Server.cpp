@@ -26,7 +26,7 @@ void Server::parseConfig(const std::string &config)
 	ServerConfig::Location errLoc;
 	errLoc.methods.push_back("GET");
 	errLoc.root = "/pages/error_pages";
-	errLoc.path = "/pages/error_pages";
+	errLoc.path = "/error_pages";
 	errLoc.autoindex = false;
 	for (size_t i = 0; i < servers.size(); ++i)
 	{
@@ -67,7 +67,7 @@ void Server::execRead(Connection con)
 	//Response response(Response::FILE, 0, "", "", "/var/www/example");
 	std::cerr << request.hostName << std::endl;
 	ServerConfig& config = con.getConfig(request.hostName);
-	Response response = Response::handleRequest(config, request.getMethod(), request.getUrl(), request.getBody().size());
+	Response response = Response::handleRequest(config, request);
 	//response.print();
 
 	//TODO if (connection == close)

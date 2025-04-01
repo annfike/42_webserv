@@ -10,7 +10,9 @@
 #include <dirent.h>
 #include <cstring>
 #include "ServerConfig.hpp"
+#include "HttpRequest.hpp"
 #include <fstream>
+#include <filesystem>
 
 class Response {
 public:
@@ -23,7 +25,7 @@ public:
 
     Response(Type type, int code = 0, const std::string& message = "", const std::string& destination = "", const std::string& filePath = "");
     void print() const;
-    static Response handleRequest(const ServerConfig& config, const std::string& method, const std::string& url, size_t bodySize);
+    static Response handleRequest(const ServerConfig& config, HttpRequestParser request);
     const std::string toHttpResponse() const;
 
 private:
