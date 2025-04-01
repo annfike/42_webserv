@@ -10,40 +10,72 @@
 <body>
     <h1>Welcome to our webserver!</h1>
     
-    <label class="upload-btn">
-        Upload file 
-        <input type="file">
-    </label>
+    <button class="upload-btn" onclick="selectAndUploadFile()">Upload File</button>
+    <input type="file" id="fileInput" style="display: none;">
 
-    <input type="text" id="filename" class="input-field" placeholder="Enter file name to delete">
-    <button class="upload-btn" onclick="deleteFile()">Delete file</button>
+    <div class="input-block">
+        <input type="text" id="filename" class="input-field" placeholder="Enter file name to delete" style="flex: 1;">
+        <button class="del-btn" onclick="deleteFile()">Delete</button>
+    </div>
     <p id="response"></p>
 
     <script>
+        function selectAndUploadFile() {
+            const fileInput = document.getElementById("fileInput");
+            fileInput.click(); // Открывает окно выбора файла
+
+            fileInput.onchange = () => {
+                const file = fileInput.files[0];
+
+                if (!file) {
+                    document.getElementById("response").innerText = "No file selected!";
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("file", file);
+                
+                fetch("/upload", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(text => {
+                    document.getElementById("response").innerText = "File uploaded successfully!";
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    document.getElementById("response").innerText = "Error uploading file!";
+                });
+            };
+        }
+
         function deleteFile() {
             const filename = document.getElementById("filename").value.trim();
             if (!filename) {
-                alert("Введите имя файла!");
+                document.getElementById("response").innerText = "Enter a file name!";
                 return;
             }
 
-            fetch(`http://localhost:8001/bbb/${filename}`, {
-                method: 'DELETE'
+            fetch(`${filename}`, {
+                method: "DELETE"
             })
             .then(response => {
                 if (response.status === 204) {
-                    alert('Файл успешно удалён!');
+                    document.getElementById("response").innerText = "File deleted successfully!";
                 } else if (response.status === 404) {
-                    alert('Файл не найден.');
+                    document.getElementById("response").innerText = "File not found.";
                 } else {
-                    alert('Ошибка: ' + response.status);
+                    document.getElementById("response").innerText = "Error: " + response.status;
                 }
             })
-            .catch(error => console.error('Ошибка:', error));
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("response").innerText = "Error deleting file!";
+            });
         }
-    </script>
-
-    
+    </script>    
+  
 </body>
 </html>
 
