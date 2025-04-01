@@ -1,4 +1,4 @@
-#include "CGIManger.hpp"
+#include "CGIManager.hpp"
 
 class CgiHandler {
   private:
