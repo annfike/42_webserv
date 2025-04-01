@@ -116,6 +116,7 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, const std::vect
     this->cgi_env_variables["REDIRECT_STATUS"]   = "200";
     this->cgi_env_variables["SERVER_SOFTWARE"]   = "AMANIX";
 
+    // Перебираем заголовки HTTP-запроса и добавляем их в переменные окружения в формате CGI (например, HTTP_USER_AGENT, HTTP_COOKIE).
     std::map<std::string, std::string> request_headers = request.getHeaders();
     for (std::map<std::string, std::string>::iterator iterator = request_headers.begin();
         iterator != request_headers.end(); ++iterator) {
@@ -125,6 +126,7 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, const std::vect
         cgi_env_variables[key] = iterator->second;
     }
 
+    // Конвертируем std::map в массив строк в формате ключ=значение, который требует execve().
     this->cgi_envs = (char**) calloc(sizeof(char*), this->cgi_env_variables.size() + 1);
     std::map<std::string, std::string>::const_iterator iterator = this->cgi_env_variables.begin();
     for (int i = 0; iterator != this->cgi_env_variables.end(); iterator++, i++) {
@@ -147,10 +149,12 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const std::v
 
     scriptExtension = this->cgi_path.substr(this->cgi_path.find("."));
 
+    // Проверяем, есть ли интерпретатор для данного расширения в конфигурации.
     std::map<std::string, std::string>::iterator iterator_path = locationIterator->extension_path.find(scriptExtension);
     if (iterator_path == locationIterator->extension_path.end())
         return;
 
+    // Получаем путь к интерпретатору (например, /usr/bin/python).
     cgiInterpreterPath = locationIterator->extension_path[scriptExtension];
 
     this->cgi_env_variables["AUTH_TYPE"]         = "Basic";
