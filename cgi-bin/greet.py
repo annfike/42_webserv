@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import cgi
+import cgi # type: ignore
 
 print("Content-type: text/html\n")
 form = cgi.FieldStorage()
