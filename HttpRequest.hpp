@@ -25,10 +25,10 @@ public:
     const std::string& getMethod() const;
     const std::string& getUrl() const;
     const std::string& getBody() const;
-    const std::string& HttpRequestParser::getHeader(const std::string& key) const;
-    std::map<std::string, std::string>& HttpRequestParser::getHeaders();
-    std::string &HttpRequestParser::getQuery();
-    std::string &HttpRequestParser::getPath();
+    const std::string& getHeader(const std::string& key) const;
+    std::map<std::string, std::string>& getHeaders();
+    std::string& getQuery();
+    std::string& getPath();
 
     std::string hostName;
 };

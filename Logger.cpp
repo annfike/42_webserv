@@ -77,7 +77,7 @@ std::ostream& Logger::logDebug(const std::string& message) {
     if (LOG_DEBUG)
         return Logger::logMessage(DEBUG, message);
     else
-        return stream;
+        return std::cerr;
 }
 
 std::ostream& Logger::logError(const std::string& message) {
