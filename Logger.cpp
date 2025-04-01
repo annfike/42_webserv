@@ -1,91 +1,78 @@
-#include "./Logger.hpp"
+#include "Logger.hpp"
 
 static std::string getCurrentDateTime() {
-    char formattedDateTime[30];
     struct timeval currentTime;
     gettimeofday(&currentTime, nullptr);
-    std::stringstream timeStream;
     time_t seconds = currentTime.tv_sec;
     struct tm *localTime = localtime(&seconds);
-    strftime(formattedDateTime, sizeof(formattedDateTime), "%Y-%m-%d %H:%M:%S", localTime);
-    timeStream << formattedDateTime << "." << currentTime.tv_usec / 100;
-    return (timeStream.str());
+    std::stringstream timeStream;
+    timeStream << std::put_time(localTime, "%Y-%m-%d %H:%M:%S")
+               << '.' << (currentTime.tv_usec / 100);
+    return timeStream.str();
 }
 
-std::string Logger::formatMessage(const std::string& inputMessage) {
+void Logger::highlightUrls(std::string &message, const std::string &protocol) {
+    size_t position = 0;
+    while ((position = message.find(protocol, position)) != std::string::npos) {
+        size_t endPosition = message.find_first_of(" \t\n", position);
+        if (endPosition == std::string::npos) {
+            endPosition = message.length();
+        }
+
+        std::string urlSubstring = message.substr(position, endPosition - position);
+        std::string highlightedUrl = std::string(COLOR_CYAN) + COLOR_UNDERLINE + urlSubstring + RESET_COLOR;
+        message.replace(position, urlSubstring.length(), highlightedUrl);
+        position += highlightedUrl.length();
+    }
+}
+
+std::string Logger::formatMessage(const std::string &inputMessage) {
     std::string outputMessage = inputMessage;
-
-    std::size_t currentPosition = 0;
-    while ((currentPosition = outputMessage.find("http://", currentPosition)) != std::string::npos) {
-        std::size_t endPosition = outputMessage.find(" \t\n", currentPosition);
-        if (endPosition == std::string::npos) {
-            endPosition = outputMessage.length();
-        }
-        std::string urlSubstring = outputMessage.substr(currentPosition, endPosition - currentPosition);
-        std::string highlightedUrl = std::string(COLOR_CYAN) + COLOR_UNDERLINE + urlSubstring + RESET_COLOR;
-        outputMessage.replace(currentPosition, urlSubstring.length(), highlightedUrl);
-        currentPosition += highlightedUrl.length();
-    }
-
-    currentPosition = 0;
-    while ((currentPosition = outputMessage.find("https://", currentPosition)) != std::string::npos) {
-        std::size_t endPosition = outputMessage.find(" \t\n", currentPosition);
-        if (endPosition == std::string::npos) {
-            endPosition = outputMessage.length();
-        }
-        std::string urlSubstring = outputMessage.substr(currentPosition, endPosition - currentPosition);
-        std::string highlightedUrl = std::string(COLOR_CYAN) + COLOR_UNDERLINE + urlSubstring + RESET_COLOR;
-        outputMessage.replace(currentPosition, urlSubstring.length(), highlightedUrl);
-        currentPosition += highlightedUrl.length();
-    }
+    highlightUrls(outputMessage, "http://");
+    highlightUrls(outputMessage, "https://");
     return outputMessage;
 }
 
-std::ostream& Logger::logMessage(LogLevel level, const std::string& message) {
-    std::ostream& stream = level <= 2 ? std::cerr : std::cout;
+std::ostream &Logger::logMessage(LogLevel level, const std::string &message) {
+    static const std::map<LogLevel, std::string> levelColors = {
+        {FATAL, COLOR_RED COLOR_WHITE "[FATAL]"},
+        {ERROR, COLOR_RED "[ERROR]"},
+        {WARNING, COLOR_YELLOW "[WARNING]"},
+        {INFO, COLOR_CYAN "[INFO]"},
+        {DEBUG, COLOR_GREEN "[DEBUG]"}
+    };
+
+    std::ostream &stream = (level <= ERROR) ? std::cerr : std::cout;
+
     stream << "[" << getCurrentDateTime() << "] ";
-    switch(level) {
-        case FATAL:
-            stream << COLOR_RED << COLOR_WHITE << "[FATAL]";
-            break;
-        case ERROR:
-            stream << COLOR_RED << "[ERROR]";
-            break;
-        case WARNING:
-            stream << COLOR_YELLOW << "[WARNING]";
-            break;
-        case INFO:
-            stream << COLOR_CYAN << "[INFO]";
-            break;
-        case DEBUG:
-            stream << COLOR_GREEN << "[DEBUG]";
-            break;
+
+    auto it = levelColors.find(level);
+    if (it != levelColors.end()) {
+        stream << it->second;
+    } else {
+        stream << "[UNKNOWN]";
     }
-    stream << RESET_COLOR << " " << formatMessage(message);
+
+    stream << RESET_COLOR << " " << formatMessage(message) << std::endl;
     return stream;
 }
 
-std::ostream& Logger::logInfo(const std::string& message) {
-    return Logger::logMessage(INFO, message);
+std::ostream &Logger::logInfo(const std::string &message) {
+    return logMessage(INFO, message);
 }
 
-std::ostream& Logger::logWarning(const std::string& message) {
-    return Logger::logMessage(WARNING, message);
+std::ostream &Logger::logWarning(const std::string &message) {
+    return logMessage(WARNING, message);
 }
 
-std::ostream& Logger::logDebug(const std::string& message) {
-    if (LOG_DEBUG)
-        return Logger::logMessage(DEBUG, message);
-    else
-        return std::cerr;
+std::ostream &Logger::logDebug(const std::string &message) {
+    return LOG_DEBUG ? logMessage(DEBUG, message) : std::cerr;
 }
 
-std::ostream& Logger::logError(const std::string& message) {
-    return Logger::logMessage(ERROR, message);
+std::ostream &Logger::logError(const std::string &message) {
+    return logMessage(ERROR, message);
 }
 
-std::ostream& Logger::logFatal(const std::string& message) {
-    return Logger::logMessage(FATAL, message);
+std::ostream &Logger::logFatal(const std::string &message) {
+    return logMessage(FATAL, message);
 }
-
-static std::ostream stream(0);
