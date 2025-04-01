@@ -36,8 +36,9 @@ public:
     static std::ostream &logFatal(const std::string &message);
 
 private:
-    static std::string formatMessage(const std::string &inputMessage);
     static void highlightUrls(std::string &message, const std::string &protocol);
+    static std::map<LogLevel, std::string> createLevelColors();
+    static std::string formatMessage(const std::string &inputMessage);
     static std::string getCurrentDateTime();
 };
 
