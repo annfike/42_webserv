@@ -4,7 +4,7 @@ CC = c++ #-g
 
 CFLAGS = -Wall -Werror -Wextra -std=c++98
 
-SRCS = main.cpp Server.cpp ConfigParser.cpp ServerConfig.cpp SocketManager.cpp HttpRequest.cpp HttpResponse.cpp Connection.cpp
+SRCS = main.cpp Server.cpp ConfigParser.cpp ServerConfig.cpp SocketManager.cpp HttpRequest.cpp HttpResponse.cpp Connection.cpp CGIManager.cpp Logger.cpp
 
 OBJ_DIR = obj
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.cpp=.o))

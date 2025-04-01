@@ -11,6 +11,8 @@ class ServerConfig {
 public:
     class Location {
     public:
+        std::map<std::string, std::string> extension_path;
+
         std::string path;
         std::vector<std::string> methods;
         std::string index;
@@ -19,12 +21,13 @@ public:
         std::string upload_store;
         std::string max_body;
         std::string redirect;
+        std::vector<std::string> cgiPath;
+        std::vector<std::string> cgi_extension;
         bool autoindex;
 
         Location() : autoindex(true) {}
 
         void print() const;
-         
     };
 
     std::string listen;
@@ -35,6 +38,10 @@ public:
     std::map<std::string, Location> locations;
 
     void print() const;
+    const std::vector<std::string>& getCgiPathFromLocation(const std::string& locationKey) const;
+    const std::vector<std::string>& getCgiExtension() const;
+    const std::string& getRootLocation(const std::string& locationKey) const;
+
     //const Location* getLocationByIndex(const ServerConfig& config, int index);
 };
 

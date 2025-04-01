@@ -120,3 +120,26 @@ const std::string& HttpRequestParser::getUrl() const {
 const std::string& HttpRequestParser::getBody() const {
     return body;
 }
+
+const std::string& HttpRequestParser::getHeader(const std::string& key) const {
+    std::map<std::string, std::string>::const_iterator it = headers.find(key);
+    if (it != headers.end()) {
+        return it->second;
+    }
+    static const std::string emptyStr = "";
+    return emptyStr;
+}
+
+std::map<std::string, std::string>& HttpRequestParser::getHeaders() {
+    return headers;
+}
+
+std::string &HttpRequestParser::getQuery()
+{
+    return (query);
+}
+
+std::string &HttpRequestParser::getPath()
+{
+    return (path);
+}

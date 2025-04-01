@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CGI Test</title>
+</head>
+<body>
+    <h1>Welcome to the CGI Test</h1>
+    <form action="/cgi-bin/hello.py" method="POST">
+        <label for="name">Enter your name: </label>
+        <input type="text" id="name" name="name" required>
+        <input type="submit" value="Submit">
+    </form>
+
+    <form action="/cgi-bin/greet.py" method="GET">
+        <label for="greeting">Enter your greeting: </label>
+        <input type="text" id="greeting" name="greeting" required>
+        <input type="submit" value="Send Greeting">
+    </form>
+
+    <form action="/cgi-bin/time.py" method="GET">
+        <input type="submit" value="Get Current Time">
+    </form>
+
+    <form action="/cgi-bin/error.py" method="GET">
+        <input type="submit" value="Cause Error">
+    </form>
+</body>
+</html>
