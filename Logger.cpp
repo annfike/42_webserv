@@ -2,12 +2,15 @@
 
 static std::string getCurrentDateTime() {
     struct timeval currentTime;
-    gettimeofday(&currentTime, nullptr);
+    gettimeofday(&currentTime, NULL);
     time_t seconds = currentTime.tv_sec;
     struct tm *localTime = localtime(&seconds);
+
+    char buffer[32];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", localTime);
+
     std::stringstream timeStream;
-    timeStream << std::put_time(localTime, "%Y-%m-%d %H:%M:%S")
-               << '.' << (currentTime.tv_usec / 100);
+    timeStream << buffer << '.' << (currentTime.tv_usec / 100);
     return timeStream.str();
 }
 
@@ -20,7 +23,8 @@ void Logger::highlightUrls(std::string &message, const std::string &protocol) {
         }
 
         std::string urlSubstring = message.substr(position, endPosition - position);
-        std::string highlightedUrl = std::string(COLOR_CYAN) + COLOR_UNDERLINE + urlSubstring + RESET_COLOR;
+        std::string highlightedUrl =
+            std::string(COLOR_CYAN) + COLOR_UNDERLINE + urlSubstring + RESET_COLOR;
         message.replace(position, urlSubstring.length(), highlightedUrl);
         position += highlightedUrl.length();
     }
@@ -34,19 +38,13 @@ std::string Logger::formatMessage(const std::string &inputMessage) {
 }
 
 std::ostream &Logger::logMessage(LogLevel level, const std::string &message) {
-    static const std::map<LogLevel, std::string> levelColors = {
-        {FATAL, COLOR_RED COLOR_WHITE "[FATAL]"},
-        {ERROR, COLOR_RED "[ERROR]"},
-        {WARNING, COLOR_YELLOW "[WARNING]"},
-        {INFO, COLOR_CYAN "[INFO]"},
-        {DEBUG, COLOR_GREEN "[DEBUG]"}
-    };
+    static const std::map<LogLevel, std::string> levelColors = createLevelColors();
 
     std::ostream &stream = (level <= ERROR) ? std::cerr : std::cout;
 
     stream << "[" << getCurrentDateTime() << "] ";
 
-    auto it = levelColors.find(level);
+    std::map<LogLevel, std::string>::const_iterator it = levelColors.find(level);
     if (it != levelColors.end()) {
         stream << it->second;
     } else {
@@ -75,4 +73,14 @@ std::ostream &Logger::logError(const std::string &message) {
 
 std::ostream &Logger::logFatal(const std::string &message) {
     return logMessage(FATAL, message);
+}
+
+std::map<LogLevel, std::string> Logger::createLevelColors() {
+    std::map<LogLevel, std::string> levelColors;
+    levelColors[FATAL] = COLOR_RED COLOR_WHITE "[FATAL]";
+    levelColors[ERROR] = COLOR_RED "[ERROR]";
+    levelColors[WARNING] = COLOR_YELLOW "[WARNING]";
+    levelColors[INFO] = COLOR_CYAN "[INFO]";
+    levelColors[DEBUG] = COLOR_GREEN "[DEBUG]";
+    return levelColors;
 }
