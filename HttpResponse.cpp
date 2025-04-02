@@ -177,11 +177,28 @@ Response generateFolderList(const ServerConfig& config, const std::string& folde
     return Response(Response::FOLDER_LIST, 200, html.str());
 }
 
-bool isCGIExtension(const std::string& extension) {
-    // является ли расширение CGI
-    (void)extension;
+#include <string>
+
+bool isCGIExtension(const std::string& localPath) {
+    const std::string cgiExtensions[] = {".cgi", ".pl", ".py", ".php"};
+    const size_t numExtensions = sizeof(cgiExtensions) / sizeof(cgiExtensions[0]);
+
+    size_t dotPos = localPath.rfind('.');
+    if (dotPos == std::string::npos) {
+        return false;
+    }
+
+    std::string extension = localPath.substr(dotPos);
+
+    for (size_t i = 0; i < numExtensions; ++i) {
+        if (extension == cgiExtensions[i]) {
+            return true;
+        }
+    }
     return false;
 }
+
+
 
 Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
     std::string urlLocal;
