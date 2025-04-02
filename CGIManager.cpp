@@ -275,7 +275,12 @@ short CgiHandler::exec(const ServerConfig::Location& location, HttpRequestParser
     setupCgiEnvironment(request, location);
     prepareCgiExecutionEnv(request, location);
 
-    short error_code;
+    if (cgi_args[0] == NULL) {
+        Logger::logError("CGI execution failed: Invalid arguments");
+        return 500;
+    }
+
+    short error_code = 0;
     executeCgiProcess(error_code);
     return error_code;
 }

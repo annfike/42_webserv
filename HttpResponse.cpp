@@ -177,9 +177,26 @@ Response generateFolderList(const ServerConfig& config, const std::string& folde
     return Response(Response::FOLDER_LIST, 200, html.str());
 }
 
-bool isCGIExtension(const std::string& extension) {
-    // является ли расширение CGI
-    (void)extension;
+#include <string>
+
+bool isCGIExtension(const std::string& localPath) {
+    printf("tuta\n");
+    const std::string cgiExtensions[] = {".cgi", ".pl", ".py", ".php"};
+    const size_t numExtensions = sizeof(cgiExtensions) / sizeof(cgiExtensions[0]);
+
+    size_t dotPos = localPath.rfind('.');
+    if (dotPos == std::string::npos) {
+        return false;
+    }
+
+    std::string extension = localPath.substr(dotPos);
+    printf("extension >>> %s\n", extension.c_str());
+
+    for (size_t i = 0; i < numExtensions; ++i) {
+        if (extension == cgiExtensions[i]) {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -212,6 +229,14 @@ void parseMultipartFormData(std::istringstream &request, const std::string &boun
 }
 
 Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
+    printf("Request method ==: %s\n", request.getMethod().c_str());
+    printf("Request path ==: %s\n", request.getPath().c_str());
+    printf("Request headers ==: \n");
+    std::map<std::string, std::string> headers = request.getHeaders();
+    for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it) {
+        printf("  %s: %s\n", it->first.c_str(), it->second.c_str());
+    }
+
     std::string urlLocal;
     std::string url = request.getUrl();
     const ServerConfig::Location location = getLocation(config, url, &urlLocal);
@@ -240,6 +265,8 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
     }
 
 	std::string localPath = findLocalPath(location, urlLocal);
+    printf("localPath@@@@@@@@: %s\n", localPath.c_str());
+    printf("urlLocal@@@@@@@@: %s\n", urlLocal.c_str());
     std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
 
     if (localPath.empty()) 
@@ -309,6 +336,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     if (isCGIExtension(localPath))
     {
+        printf("localPath =================>>>>>>>>>>>>>>>>>>>>%s", localPath.c_str());
         short err = CgiHandler().exec(location, request);
         return Response(Response::FILE, err, "CGI Execution", "", localPath);
     }
