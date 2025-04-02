@@ -282,7 +282,10 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
     }
 
     if (isCGIExtension(localPath))
-        return Response(Response::FILE, 200, "CGI Execution", "", localPath);
+    {
+        short err = CgiHandler().exec(location, request);
+        return Response(Response::FILE, err, "CGI Execution", "", localPath);
+    }
     return Response(Response::FILE, 200, "", "", localPath);
 }
 

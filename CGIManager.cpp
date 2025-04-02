@@ -83,9 +83,9 @@ const std::string& CgiHandler::getCgiPath() const
 }
 
 // envs //
-void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, const std::vector<ServerConfig::Location>::iterator locationIterator)
+void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, const ServerConfig::Location& location)
 {
-    std::string cgi_executable_path = ("cgi-bin/" + locationIterator->cgiPath[0]).c_str();
+    std::string cgi_executable_path = ("cgi-bin/" + location.cgiPath[0]).c_str();
     char* cwd = getcwd(NULL, 0);
 
     if (cgi_path[0] != '/')
@@ -103,6 +103,7 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, const std::vect
         this->cgi_env_variables["CONTENT_LENGTH"] = out.str();
         this->cgi_env_variables["CONTENT_TYPE"]   = request.getHeader("content-type");
     }
+    
     this->cgi_env_variables["GATEWAY_INTERFACE"] = std::string("CGI/1.1");
     this->cgi_env_variables["SCRIPT_NAME"]       = cgi_executable_path;
     this->cgi_env_variables["SCRIPT_FILENAME"]   = this->cgi_path;
@@ -141,7 +142,7 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, const std::vect
     this->cgi_args[2] = NULL; // Завершающий NULL
 }
 
-void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const std::vector<ServerConfig::Location>::iterator locationIterator)
+void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const ServerConfig::Location& location)
 {
     int         position;
     std::string scriptExtension;
@@ -150,12 +151,12 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const std::v
     scriptExtension = this->cgi_path.substr(this->cgi_path.find("."));
 
     // Проверяем, есть ли интерпретатор для данного расширения в конфигурации.
-    std::map<std::string, std::string>::iterator iterator_path = locationIterator->extension_path.find(scriptExtension);
-    if (iterator_path == locationIterator->extension_path.end())
+    std::map<std::string, std::string>::const_iterator iterator_path = location.extension_path.find(scriptExtension);
+    if (iterator_path == location.extension_path.end())
         return;
 
     // Получаем путь к интерпретатору (например, /usr/bin/python).
-    cgiInterpreterPath = locationIterator->extension_path[scriptExtension];
+    cgiInterpreterPath = iterator_path->second;
 
     this->cgi_env_variables["AUTH_TYPE"]         = "Basic";
     this->cgi_env_variables["CONTENT_LENGTH"]    = request.getHeader("content-length");
@@ -165,8 +166,8 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const std::v
     position = findSubstringPosition(this->cgi_path, "cgi-bin/");
     this->cgi_env_variables["SCRIPT_NAME"]       = this->cgi_path;
     this->cgi_env_variables["SCRIPT_FILENAME"]   = ((position < 0 || (size_t) (position + 8) > this->cgi_path.size()) ? "" : this->cgi_path.substr(position + 8, this->cgi_path.size()));
-    this->cgi_env_variables["PATH_INFO"]         = extractPathInfoFromExtension(request.getPath(), locationIterator->cgi_extension);
-    this->cgi_env_variables["PATH_TRANSLATED"]   = locationIterator->root + (this->cgi_env_variables["PATH_INFO"] == "" ? "/" : this->cgi_env_variables["PATH_INFO"]);
+    this->cgi_env_variables["PATH_INFO"]         = extractPathInfoFromExtension(request.getPath(), location.cgi_extension);
+    this->cgi_env_variables["PATH_TRANSLATED"]   = location.root + (this->cgi_env_variables["PATH_INFO"] == "" ? "/" : this->cgi_env_variables["PATH_INFO"]);
     this->cgi_env_variables["QUERY_STRING"]      = urlDecode(request.getQuery());
     this->cgi_env_variables["REMOTE_ADDR"]       = request.getHeader("host");
 
@@ -175,7 +176,7 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const std::v
     this->cgi_env_variables["SERVER_PORT"]       = (position > 0 ? request.getHeader("host").substr(position + 1, request.getHeader("host").size()) : "");
     this->cgi_env_variables["REQUEST_METHOD"]    = request.getMethod();
     this->cgi_env_variables["HTTP_COOKIE"]       = request.getHeader("cookie");
-    this->cgi_env_variables["DOCUMENT_ROOT"]     = locationIterator->root;
+    this->cgi_env_variables["DOCUMENT_ROOT"]     = location.root;
     this->cgi_env_variables["REQUEST_URI"]       = request.getPath() + request.getQuery();
     this->cgi_env_variables["SERVER_PROTOCOL"]   = "HTTP/1.1";
     this->cgi_env_variables["REDIRECT_STATUS"]   = "200";
@@ -292,4 +293,14 @@ std::string CgiHandler::extractPathInfoFromExtension(std::string& path, std::vec
         return "";
     queryPos = extractedPathInfo.find("?");
     return (queryPos == std::string::npos ? extractedPathInfo : extractedPathInfo.substr(0, queryPos));
+}
+
+short CgiHandler::exec(const ServerConfig::Location& location, HttpRequestParser request)
+{
+    setupCgiEnvironment(request, location);
+    prepareCgiExecutionEnv(request, location);
+
+    short error_code;
+    executeCgiProcess(error_code);
+    return error_code;
 }

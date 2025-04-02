@@ -13,6 +13,7 @@
 #include "HttpRequest.hpp"
 #include <fstream>
 #include <filesystem>
+#include "CGIManager.hpp"
 
 class Response {
 public:

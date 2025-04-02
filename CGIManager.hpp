@@ -32,11 +32,12 @@ class CgiHandler {
     CgiHandler(CgiHandler const& obj);
     CgiHandler& operator=(CgiHandler const& rhs);
 
-    void prepareCgiExecutionEnv(HttpRequestParser& request, const std::vector<ServerConfig::Location>::iterator locationIterator);
-    void setupCgiEnvironment(HttpRequestParser& request, const std::vector<ServerConfig::Location>::iterator locationIterator);
+    void prepareCgiExecutionEnv(HttpRequestParser& request, const ServerConfig::Location& location);
+    void setupCgiEnvironment(HttpRequestParser& request, const ServerConfig::Location& location);
     void executeCgiProcess(short& error_code);
     void setCgiPath(const std::string& cgi_path);
     void setCgiPid(pid_t cgi_pid);
+    short exec(const ServerConfig::Location& location, HttpRequestParser request);
 
     const pid_t& getCgiPid() const;
     const std::string& getCgiPath() const;
@@ -44,7 +45,7 @@ class CgiHandler {
     int findSubstringPosition(const std::string& inputString, const std::string& delimiter);
 
     std::string extractPathInfoFromExtension(std::string& path, std::vector<std::string> extensions);
-    std::string urlDecode(std::string& path);
+    std::string urlDecode(std::string& path);    
 };
 
 #endif
