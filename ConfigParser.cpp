@@ -105,8 +105,14 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                 size_t start = line.find(" ");
                 size_t end = line.find(";");
                 if (start != std::string::npos && end != std::string::npos) {
-                    current_server.client_max_body_size = line.substr(start + 1, end - start - 1);
-                    trim(current_server.client_max_body_size);
+                    std::string str = line.substr(start + 1, end - start - 1);
+                    trim(str);
+                    if(str.empty()) {
+                        str = "1024"; // какой макс????? в конфиге у нас два в сервере и локэйшене ??
+                    }
+                    char* end;
+                    current_server.client_max_body_size = std::strtoul(str.c_str(), &end, 10);
+                    
                     //std::cout << "Parsed client_max_body_size: " << current_server.client_max_body_size << std::endl;  // Debug
                 }
             } else if (line.find("location") != std::string::npos) {

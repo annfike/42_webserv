@@ -73,15 +73,7 @@ bool isMethodAllowed(const ServerConfig::Location& location, const std::string& 
 }
 
 bool isBodySizeValid(const ServerConfig& config, size_t size) {
-    std::string str = config.client_max_body_size;
-    if(str == "") {
-        str = "1000000"; // какой макс????? в конфиге у нас два в сервере и локэйшене ??
-    }
-    char* end;
-    unsigned long maxBodySize = std::strtoul(str.c_str(), &end, 10);
-    std::cerr << "maxBodySize: " << maxBodySize << "+++";
-    std::cerr << "size: " << size << "+++";
-    return size <= maxBodySize;
+    return size <= config.client_max_body_size;
 }
 
 std::string findRedirectPath(const ServerConfig::Location& location) {
@@ -283,8 +275,8 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     if (isCGIExtension(localPath))
     {
-        short err = CgiHandler().exec(location, request);
-        return Response(Response::FILE, err, "CGI Execution", "", localPath);
+        //short err = CgiHandler().exec(location, request);
+        //return Response(Response::FILE, err, "CGI Execution", "", localPath);
     }
     return Response(Response::FILE, 200, "", "", localPath);
 }
