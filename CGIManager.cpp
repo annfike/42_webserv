@@ -2,45 +2,24 @@
 
 CgiHandler::CgiHandler()
 {
-    this->cgi_args    = NULL;
     this->cgi_pid     = -1;
     this->cgi_path    = "";
-    this->cgi_envs    = NULL;
     this->status_exit = 0;
 }
 
 CgiHandler::CgiHandler(std::string path)
 {
-    this->cgi_args    = NULL;
     this->cgi_pid     = -1;
     this->cgi_path    = path;
-    this->cgi_envs    = NULL;
     this->status_exit = 0;
 }
 
 CgiHandler::~CgiHandler()
-{
-
-    if (this->cgi_envs)
-    {
-        for (int i = 0; this->cgi_envs[i]; i++)
-            free(this->cgi_envs[i]);
-        free(this->cgi_envs);
-    }
-    if (this->cgi_args)
-    {
-        for (int i = 0; this->cgi_args[i]; i++)
-            free(cgi_args[i]);
-        free(cgi_args);
-    }
-    this->cgi_env_variables.clear();
-}
+{}
 
 CgiHandler::CgiHandler(const CgiHandler& obj)
 {
-    this->cgi_args              = obj.cgi_args;
     this->cgi_env_variables     = obj.cgi_env_variables;
-    this->cgi_envs              = obj.cgi_envs;
     this->cgi_path              = obj.cgi_path;
     this->cgi_pid               = obj.cgi_pid;
     this->status_exit           = obj.status_exit;
@@ -50,9 +29,7 @@ CgiHandler& CgiHandler::operator=(const CgiHandler& obj)
 {
     if (this != &obj)
     {
-        this->cgi_args          = obj.cgi_args;
         this->cgi_env_variables = obj.cgi_env_variables;
-        this->cgi_envs          = obj.cgi_envs;
         this->cgi_path          = obj.cgi_path;
         this->cgi_pid           = obj.cgi_pid;
         this->status_exit       = obj.status_exit;
@@ -122,23 +99,23 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, const ServerCon
     for (std::map<std::string, std::string>::iterator iterator = request_headers.begin();
         iterator != request_headers.end(); ++iterator) {
         std::string name = iterator->first;
-        std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+        for (size_t i = 0; i < name.length(); ++i) {
+            name[i] = std::toupper(name[i]);
+        }
         std::string key = "HTTP_" + name;
         cgi_env_variables[key] = iterator->second;
     }
 
     // Конвертируем std::map в массив строк в формате ключ=значение, который требует execve().
-    this->cgi_envs = (char**) calloc(sizeof(char*), this->cgi_env_variables.size() + 1);
     std::map<std::string, std::string>::const_iterator iterator = this->cgi_env_variables.begin();
     for (int i = 0; iterator != this->cgi_env_variables.end(); iterator++, i++) {
         std::string tmp  = iterator->first + "=" + iterator->second;
-        this->cgi_envs[i] = strdup(tmp.c_str());
+        this->cgi_envs[i] = (char *)tmp.c_str();
     }
 
     // Создаем массив аргументов для CGI-программы
-    this->cgi_args    = (char**) malloc(sizeof(char*) * 3);
-    this->cgi_args[0] = strdup(cgi_executable_path.c_str()); // Сам исполняемый файл CGI
-    this->cgi_args[1] = strdup(this->cgi_path.c_str()); // Путь к CGI-скрипту
+    this->cgi_args[0] = (char *)cgi_executable_path.c_str(); // Сам исполняемый файл CGI
+    this->cgi_args[1] = (char *)this->cgi_path.c_str(); // Путь к CGI-скрипту
     this->cgi_args[2] = NULL; // Завершающий NULL
 }
 
@@ -183,17 +160,15 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const Server
     this->cgi_env_variables["SERVER_SOFTWARE"]   = "AMANIX";
 
     // Создаем массив переменных окружения для CGI-процесса
-    this->cgi_envs      = (char**) calloc(sizeof(char*), this->cgi_env_variables.size() + 1);
     std::map<std::string, std::string>::const_iterator iterator = this->cgi_env_variables.begin();
     for (int i = 0; iterator != this->cgi_env_variables.end(); iterator++, i++) {
         std::string tmp  = iterator->first + "=" + iterator->second;
-        this->cgi_envs[i] = strdup(tmp.c_str());
+        this->cgi_envs[i] = (char *)tmp.c_str();
     }
 
     // Создаем массив аргументов для CGI-программы
-    this->cgi_args      = (char**) malloc(sizeof(char*) * 3);
-    this->cgi_args[0]   = strdup(cgiInterpreterPath.c_str()); // Путь к интерпретатору (например, /usr/bin/python)
-    this->cgi_args[1]   = strdup(this->cgi_path.c_str()); // Путь к исполняемому скрипту
+    this->cgi_args[0]   = (char *)cgiInterpreterPath.c_str(); // Путь к интерпретатору (например, /usr/bin/python)
+    this->cgi_args[1]   = (char *)this->cgi_path.c_str(); // Путь к исполняемому скрипту
     this->cgi_args[2]   = NULL; // Завершающий NULL
 }
 

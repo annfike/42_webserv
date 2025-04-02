@@ -1,6 +1,6 @@
 #include "Logger.hpp"
 
-static std::string getCurrentDateTime() {
+std::string Logger::getCurrentDateTime() {
     struct timeval currentTime;
     gettimeofday(&currentTime, NULL);
     time_t seconds = currentTime.tv_sec;
