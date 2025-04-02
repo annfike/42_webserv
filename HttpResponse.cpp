@@ -200,32 +200,61 @@ bool isCGIExtension(const std::string& localPath) {
     return false;
 }
 
-void parseMultipartFormData(std::istringstream &request, const std::string &boundary) 
+void parseMultipartFormData(std::istringstream &request, const std::string &boundary, std::string& fileName, std::ostringstream& body) 
 {
     std::string line;
     std::string currentPart;
+    std::string contentType;
     
-    while (std::getline(request, line)) 
+    std::getline(request, line);
+    if (line.find(boundary) == std::string::npos) 
+        return;
+
+    std::getline(request, line);
+    if (line.find("Content-Disposition:") != std::string::npos) 
+    {
+        size_t filenamePos = line.find("filename=\"");
+        if (filenamePos != std::string::npos) 
+        {
+            fileName = line.substr(filenamePos + 10);
+            fileName = fileName.substr(0, fileName.find('"')); // Удаляем лишнее
+            std::cerr << "filename=" << fileName;
+        }
+    }
+
+    std::getline(request, line);
+    if (line.find("Content-Type:") != std::string::npos)
+    {}
+
+    std::getline(request, line);
+    if (line == "\r")
+    {
+        // Пропускаем пустую строку перед данными
+    }
+
+    std::getline(request, line);
+    if (!line.empty() && *line.rbegin() == '\r')
+        line.erase(line.length() - 1);
+    if (line.find(boundary) == std::string::npos) 
+        body.write(line.c_str(), line.size());
+
+    while (std::getline(request, line))
     {
         if (line.find(boundary) != std::string::npos) 
             continue;
+        
+        if (!line.empty() && *line.rbegin() == '\r')
+            line.erase(line.length() - 1);
 
-        if (line.find("Content-Disposition:") != std::string::npos) 
-        {
-            size_t filenamePos = line.find("filename=\"");
-            if (filenamePos != std::string::npos) 
-            {
-                std::string fileName = line.substr(filenamePos + 10);
-                fileName = fileName.substr(0, fileName.find('"')); // Удаляем лишнее
-            }
-        } 
-        else if (line == "\r")
-            continue; // Пропускаем пустую строку перед данными
-        else 
-        {
-            //outFile << line << "\n"; // Записываем строку в файл
-        }
+        body.put('\n');
+        body.write(line.c_str(), line.size());
     }
+
+    char buffer[1024];
+        while (request.read(buffer, sizeof(buffer)))
+        {
+            body.write(buffer, request.gcount());
+        }
 }
 
 Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
@@ -282,31 +311,29 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     if (request.getMethod() == "POST")
     {
+        if (request.boundary.empty())
+            return getErrorResponse(config, 500, "Not supported!!!");
+
         std::string folder = location.upload_store;
         if (folder.empty())
-            folder = location.root;
-        std::string filename = folder.substr(1) + "/1.txt";
+            folder = location.root;        
 
-        // Создаем папку, если её нет
-        //if (!std::filesystem::exists(location.upload_store))
-        //{
-        //    return getErrorResponse(config, 500, "Upload folder not exists!");
-        //}
-
-
-            // Извлекаем boundary
-            //std::string boundary = "--" + cont->second.substr(cont->second.find("boundary=") + 9);
-            //parseMultipartFormData(request, boundary);
-
-
-        std::cerr << filename;
+        std::istringstream bodys(request.getBody());
+        std::string filename;
+        std::ostringstream body;
+        parseMultipartFormData(bodys, request.boundary, filename, body);
+        filename = folder.substr(1) + '/' + filename;
+        std::cerr << "filename=" << filename;
 
         // Сохраняем тело запроса в файл
         std::ofstream outFile(filename.c_str(), std::ios::binary);
         if (outFile && outFile.is_open()) {
-            outFile << request.getBody();
+            outFile << body.str();
             outFile.close();
-            return Response(Response::FILE, 200, "File uploaded successfully!", "", localPath);
+
+            std::cerr << "/*" << body.str() << "*/";
+
+            return Response(Response::FILE, 200, "File uploaded successfully!");
         }
         else 
             return getErrorResponse(config, 500, "Error saving file!");

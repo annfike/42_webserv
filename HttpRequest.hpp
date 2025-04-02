@@ -14,8 +14,7 @@ private:
     std::string path;
     std::string httpVersion;
     std::map<std::string, std::string> headers;
-    std::string body;
-    bool multipart;
+    std::string body;    
     std::string query;
 
 public:
@@ -32,6 +31,7 @@ public:
     std::string& getPath();
 
     std::string hostName;
+    std::string boundary;
 };
 
 #endif // HTTPREQUEST_HPP

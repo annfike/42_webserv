@@ -77,7 +77,7 @@ chunk 2\r\n\
     {
         std::map<std::string, std::string>::const_iterator cont = headers.find("Content-Type");
         if (cont != headers.end() && cont->second.find("multipart/form-data") != std::string::npos)
-            multipart = true;
+            boundary = "--" + cont->second.substr(cont->second.find("boundary=") + 9);
 
         size_t contentLength = std::strtoul(it->second.c_str(), NULL, 10);
         body.resize(contentLength);
