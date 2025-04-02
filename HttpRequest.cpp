@@ -73,11 +73,15 @@ chunk 2\r\n\
     // Parse body if present
     std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
     std::map<std::string, std::string>::const_iterator chunked = headers.find("Transfer-Encoding");
-    if (it != headers.end()) 
+    if (it != headers.end())
     {
-        size_t contentLength = std::strtoul(it->second.c_str(), NULL, 10); // Аналог std::stoul в C++98
+        std::map<std::string, std::string>::const_iterator cont = headers.find("Content-Type");
+        if (cont != headers.end() && cont->second.find("multipart/form-data") != std::string::npos)
+            multipart = true;
+
+        size_t contentLength = std::strtoul(it->second.c_str(), NULL, 10);
         body.resize(contentLength);
-        request.read(&body[0], contentLength);        
+        request.read(&body[0], contentLength);
     }
     else if (chunked != headers.end() && chunked->second == "chunked")
     {

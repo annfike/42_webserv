@@ -183,6 +183,34 @@ bool isCGIExtension(const std::string& extension) {
     return false;
 }
 
+void parseMultipartFormData(std::istringstream &request, const std::string &boundary) 
+{
+    std::string line;
+    std::string currentPart;
+    
+    while (std::getline(request, line)) 
+    {
+        if (line.find(boundary) != std::string::npos) 
+            continue;
+
+        if (line.find("Content-Disposition:") != std::string::npos) 
+        {
+            size_t filenamePos = line.find("filename=\"");
+            if (filenamePos != std::string::npos) 
+            {
+                std::string fileName = line.substr(filenamePos + 10);
+                fileName = fileName.substr(0, fileName.find('"')); // Удаляем лишнее
+            }
+        } 
+        else if (line == "\r")
+            continue; // Пропускаем пустую строку перед данными
+        else 
+        {
+            //outFile << line << "\n"; // Записываем строку в файл
+        }
+    }
+}
+
 Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
     std::string urlLocal;
     std::string url = request.getUrl();
@@ -238,11 +266,17 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         //    return getErrorResponse(config, 500, "Upload folder not exists!");
         //}
 
+
+            // Извлекаем boundary
+            //std::string boundary = "--" + cont->second.substr(cont->second.find("boundary=") + 9);
+            //parseMultipartFormData(request, boundary);
+
+
         std::cerr << filename;
 
         // Сохраняем тело запроса в файл
         std::ofstream outFile(filename.c_str(), std::ios::binary);
-        if (outFile) {
+        if (outFile && outFile.is_open()) {
             outFile << request.getBody();
             outFile.close();
             return Response(Response::FILE, 200, "File uploaded successfully!", "", localPath);

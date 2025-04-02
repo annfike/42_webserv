@@ -15,6 +15,7 @@ private:
     std::string httpVersion;
     std::map<std::string, std::string> headers;
     std::string body;
+    bool multipart;
     std::string query;
 
 public:
