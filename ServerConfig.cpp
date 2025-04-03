@@ -33,15 +33,6 @@ void ServerConfig::print() const {
     }
 }
 
-const std::vector<std::string>& ServerConfig::getCgiPathFromLocation(const std::string& locationKey) const
-{
-    std::map<std::string, Location>::const_iterator it = locations.find(locationKey);
-    if (it != locations.end()) {
-        return it->second.cgiPath;
-    }
-    throw std::out_of_range("Location not found.");
-}
-
 const std::vector<std::string>& ServerConfig::getCgiExtension() const
 {
 	if (!locations.empty()) {

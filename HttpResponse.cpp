@@ -139,12 +139,11 @@ std::string getIndexFile(const ServerConfig::Location& location, const std::stri
     return "";
 }
 
-Response getErrorResponse(const ServerConfig& config, int code, std::string message) 
+Response getErrorResponse(const ServerConfig& config, int code, std::string message)
 {
     std::map<int, std::string>::const_iterator err = config.error_pages.find(code);
     if (err != config.error_pages.end())
         return Response(Response::REDIRECT, 301, "", err->second);
-        
     return Response(Response::ERROR, code, message);
 }
 
@@ -177,35 +176,12 @@ Response generateFolderList(const ServerConfig& config, const std::string& folde
     return Response(Response::FOLDER_LIST, 200, html.str());
 }
 
-#include <string>
-
-bool isCGIExtension(const std::string& localPath) {
-    printf("tuta\n");
-    const std::string cgiExtensions[] = {".cgi", ".pl", ".py", ".php"};
-    const size_t numExtensions = sizeof(cgiExtensions) / sizeof(cgiExtensions[0]);
-
-    size_t dotPos = localPath.rfind('.');
-    if (dotPos == std::string::npos) {
-        return false;
-    }
-
-    std::string extension = localPath.substr(dotPos);
-    printf("extension >>> %s\n", extension.c_str());
-
-    for (size_t i = 0; i < numExtensions; ++i) {
-        if (extension == cgiExtensions[i]) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void parseMultipartFormData(std::istringstream &request, const std::string &boundary, std::string& fileName, std::ostringstream& body) 
 {
     std::string line;
     std::string currentPart;
     std::string contentType;
-    
+
     std::getline(request, line);
     if (line.find(boundary) == std::string::npos) 
         return;
@@ -258,9 +234,6 @@ void parseMultipartFormData(std::istringstream &request, const std::string &boun
 }
 
 Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
-    printf("Request method ==: %s\n", request.getMethod().c_str());
-    printf("Request path ==: %s\n", request.getPath().c_str());
-    printf("Request headers ==: \n");
     std::map<std::string, std::string> headers = request.getHeaders();
     for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it) {
         printf("  %s: %s\n", it->first.c_str(), it->second.c_str());
@@ -268,7 +241,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     std::string urlLocal;
     std::string url = request.getUrl();
-    const ServerConfig::Location location = getLocation(config, url, &urlLocal);
+    ServerConfig::Location location = getLocation(config, url, &urlLocal);
     //std::cerr << "location index: " << location_index << "+++";
     if (location.path.empty() ) {
         std::cerr << "nooo getlocation" << std::endl;
@@ -294,11 +267,8 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
     }
 
 	std::string localPath = findLocalPath(location, urlLocal);
-    printf("localPath@@@@@@@@: %s\n", localPath.c_str());
-    printf("urlLocal@@@@@@@@: %s\n", urlLocal.c_str());
-    std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
-
-    if (localPath.empty()) 
+    // std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
+    if (localPath.empty())
         return getErrorResponse(config, 404, "Path Not Found");
 
     if (request.getMethod() == "DELETE") 
@@ -311,12 +281,13 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     if (request.getMethod() == "POST")
     {
+        std::cout << "request.boundary: " << request.boundary << std::endl;
         if (request.boundary.empty())
             return getErrorResponse(config, 500, "Not supported!!!");
 
         std::string folder = location.upload_store;
         if (folder.empty())
-            folder = location.root;        
+            folder = location.root;
 
         std::istringstream bodys(request.getBody());
         std::string filename;
@@ -350,7 +321,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         if (localPath.empty() || url[url.length() - 1] != '/')
             return Response(Response::REDIRECT, 301, "", url + "/", "");
         else if (!(iFile = getIndexFile(location, localPath)).empty()) {
-            if (isCGIExtension(localPath))
+            if (CgiHandler().isCGIExtension(localPath))
                 return Response(Response::FILE, 200, "CGI Execution", "", localPath + "/index.html");
             else
                 return Response(Response::REDIRECT, 301, "", url + iFile);
@@ -360,10 +331,9 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         } else
             return getErrorResponse(config, 403, "Forbidden");
     }
-
-    if (isCGIExtension(localPath))
+    if (CgiHandler().isCGIExtension(localPath))
     {
-        printf("localPath =================>>>>>>>>>>>>>>>>>>>>%s", localPath.c_str());
+        location.cgiPath = localPath;
         short err = CgiHandler().exec(location, request);
         return Response(Response::FILE, err, "CGI Execution", "", localPath);
     }
