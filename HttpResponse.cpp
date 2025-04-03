@@ -200,12 +200,11 @@ bool isCGIExtension(const std::string& localPath) {
     return false;
 }
 
-void parseMultipartFormData(std::istringstream &request, const std::string &boundary, std::string& fileName, std::ostringstream& body, size_t length) 
+void parseMultipartFormData(std::istream &request, const std::string &boundary, std::string& fileName, std::vector<char>& fileData, size_t length) 
 {
     std::string line;
     std::string currentPart;
     std::string contentType;
-    char buffer[1024];
     size_t bytesRead = 0;
     length = length - boundary.length() - 2 - 4; // '--' in the boundary, '--\r\n' in the end
     
@@ -241,17 +240,17 @@ void parseMultipartFormData(std::istringstream &request, const std::string &boun
 
     std::cerr << "\nbytesRead:" << bytesRead <<", length:" << length << "\n";
 
-    while (bytesRead < length)
-    {
-        size_t toRead = std::min(sizeof(buffer), length - bytesRead);
-        request.read(buffer, toRead);
+    char buffer[4096];
+    while (!request.eof() && bytesRead < length) {
+        request.read(buffer, sizeof(buffer));
         size_t count = request.gcount();
+        count = std::min(count, length - bytesRead);
         bytesRead += count;
 
-        if (count == 0)
+        if (count == 0) 
             break;
 
-        body.write(buffer, count);
+        fileData.insert(fileData.end(), buffer, buffer + count);
     }
 }
 
@@ -316,21 +315,21 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         if (folder.empty())
             folder = location.root;        
 
-        std::istringstream bodys(request.getBody().data());
+        std::stringstream bodys;
+        bodys.write(request.getBody().data(), request.getBody().size());
+
         std::string filename;
-        std::ostringstream body;
-        parseMultipartFormData(bodys, request.boundary, filename, body, request.contentLength);
+        std::vector<char> fileData;
+        parseMultipartFormData(bodys, request.boundary, filename, fileData, request.contentLength);
         filename = folder.substr(1) + '/' + filename;
-        std::cerr << "filename=" << filename;
+        
+        std::cout << "Saving to file: " << filename << "\n";
 
         // Сохраняем тело запроса в файл
         std::ofstream outFile(filename.c_str(), std::ios::binary);
         if (outFile && outFile.is_open()) {
-            outFile << body.str().c_str();
+            outFile.write(fileData.data(), fileData.size());
             outFile.close();
-
-            std::cerr << std::endl<< std::endl<< "/*" << body.str() << "*/\n" << std::endl;
-            std::cerr << std::endl<< std::endl<< "/*" << request.getBody().data() << "*/\n" << std::endl;
 
             return Response(Response::FILE, 200, "File uploaded successfully!");
         }

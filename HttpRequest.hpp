@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <vector>
+#include <algorithm>
 
 class HttpRequestParser {
 private:

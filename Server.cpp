@@ -51,8 +51,7 @@ void Server::execRead(Connection con)
 
 	while ((bytes_read = read(con.poll.fd, buffer, sizeof(buffer) - 1)) > 0)
     {
-        buffer[bytes_read] = '\0'; // Завершаем строку
-        accumulatedData.insert(accumulatedData.end(), buffer, buffer + bytes_read); // Добавляем в накопленные данные
+		accumulatedData.insert(accumulatedData.end(), buffer, buffer + bytes_read); // Добавляем в накопленные данные
 	}
 	if (bytes_read <= 0 && accumulatedData.empty())
 	{
@@ -63,7 +62,11 @@ void Server::execRead(Connection con)
 		return;
 	}
 
-	//std::cout << "Request received: \n" << accumulatedData.data() << std::endl;
+	std::cout << "Request received: \n";
+    for (size_t i = 0; i < std::min(accumulatedData.size(), size_t(500)); i++) {
+        std::cout << accumulatedData[i];
+    }
+    std::cout << std::endl;
 
 	// Request & Response
 	HttpRequestParser request;
