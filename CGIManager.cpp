@@ -210,10 +210,6 @@ void CgiHandler::executeCgiProcess(short& error_code)
         close(cgi_output_pipe[1]);
 
         Logger::logInfo("Before execve");
-
-        // Записываем в stdout перед execve
-        std::cout << "About to execve..." << std::endl;
-
         Logger::logInfo("Executing CGI script: " + std::string(this->cgi_args[0]));
 
         // Исполнение CGI-скрипта
@@ -281,7 +277,7 @@ std::string CgiHandler::readCgiOutput()
     std::string result = "";
     ssize_t bytesRead;
 
-    std::cout << "Reading from pipe..." << std::endl;
+    Logger::logInfo("Reading from pipe...");
 
     // Чтение из pipe
     while ((bytesRead = read(cgi_output_pipe[0], buffer, sizeof(buffer))) > 0) {
@@ -292,21 +288,19 @@ std::string CgiHandler::readCgiOutput()
         perror("Error reading from pipe");
     }
 
-    std::cout << "CGI Output: " << result << std::endl;
+    Logger::logInfo("CGI Output: " + result);
     return result;
 }
 
-short CgiHandler::exec(const ServerConfig::Location& location, HttpRequestParser request)
-{
+short CgiHandler::exec(const ServerConfig::Location& location, HttpRequestParser request) {
     Logger::logInfo("CGI execution is running...");
+
     setupCgiEnvironment(request, location);
     prepareCgiExecutionEnv(request, location);
 
     if (cgi_args[0] == NULL) {
         Logger::logError("CGI execution failed: Invalid arguments");
-
-        Response errorResponse(Response::ERROR, 500, "CGI Execution Error", "", location.cgiPath);
-        return 500;
+        return 1;
     }
 
     short error_code = 0;
@@ -314,17 +308,16 @@ short CgiHandler::exec(const ServerConfig::Location& location, HttpRequestParser
 
     if (error_code == 0) {
         std::string cgi_output = readCgiOutput();
-        std::cout << "cgi_output =========== >> \n" << cgi_output << std::endl;
+        Logger::logInfo("cgi_output: " + cgi_output);
 
         if (cgi_output.empty()) {
             Logger::logWarning("CGI Output is empty!");
         }
 
-        Response successResponse(Response::FILE, error_code, "CGI Execution", cgi_output, location.cgiPath);
         return 0;
-    } else {
-        return error_code;
     }
+    else
+        return error_code;
 }
 
 bool CgiHandler::isCGIExtension(const std::string& localPath) {

@@ -345,18 +345,15 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     std::cout << "localPath =========== >> " << localPath << std::endl;
     std::cout << "urlLocal =========== >> " << urlLocal << std::endl;
-    if (CgiHandler().isCGIExtension(localPath))
-    {
+    if (CgiHandler().isCGIExtension(localPath)) {
         Logger::logInfo("isCGIExtension() is running...");
         location.cgiPath = localPath;
+
         short err = CgiHandler().exec(location, request);
         if (err == 0)
-        {
-            // std::string cgi_output = CgiHandler().readCgiOutput();
             return Response(Response::FILE, err, "CGI Execution", "", location.cgiPath);
-        } else {
+        else
             return Response(Response::ERROR, err, "CGI Execution Error", "", location.cgiPath);
-        }
     }
     return Response(Response::FILE, 200, "", "", localPath);
 }
@@ -383,7 +380,7 @@ const std::string Response::toHttpResponse() const {
     // Определяем Content-Type по расширению файла
     std::string contentType = "text/html"; // По умолчанию HTML
     if (type == FILE) {
-        std::cerr << "TYPE!   filePath: " << filePath << std::endl;
+        std::cout << "TYPE!   filePath: " << filePath << std::endl;
         std::string ext = filePath.substr(filePath.find_last_of('.') + 1);
         if (ext == "html" || ext == "htm") contentType = "text/html";
         else if (ext == "txt") contentType = "text/plain";
@@ -449,7 +446,7 @@ const std::string Response::toHttpResponse() const {
             break;
         case FILE:
             {
-                std::cerr << "file reading ... " << filePath << "!" << std::endl;
+                std::cout << "file reading ... " << filePath << "!" << std::endl;
                 std::ifstream file(filePath.c_str());
                 if (!file)
                     std::cerr << "Error reading file " << filePath << std::endl;
