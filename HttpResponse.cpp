@@ -343,14 +343,20 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
             return getErrorResponse(config, 403, "Forbidden");
     }
 
-    std::cout << "localPath --->>>" << localPath << std::endl;
-    std::cout << "urlLocal --->>>" << urlLocal << std::endl;
+    std::cout << "localPath =========== >> " << localPath << std::endl;
+    std::cout << "urlLocal =========== >> " << urlLocal << std::endl;
     if (CgiHandler().isCGIExtension(localPath))
     {
         Logger::logInfo("isCGIExtension() is running...");
         location.cgiPath = localPath;
         short err = CgiHandler().exec(location, request);
-        return Response(Response::FILE, err, "CGI Execution", "", localPath);
+        if (err == 0)
+        {
+            // std::string cgi_output = CgiHandler().readCgiOutput();
+            return Response(Response::FILE, err, "CGI Execution", "", location.cgiPath);
+        } else {
+            return Response(Response::ERROR, err, "CGI Execution Error", "", location.cgiPath);
+        }
     }
     return Response(Response::FILE, 200, "", "", localPath);
 }

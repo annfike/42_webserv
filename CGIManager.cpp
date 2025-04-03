@@ -183,11 +183,13 @@ void CgiHandler::executeCgiProcess(short& error_code)
         error_code = 500;
         return;
     }
+
     if (pipe(cgi_input_pipe) < 0) {
         Logger::logError("pipe() failed");
         error_code = 500;
         return;
     }
+
     if (pipe(cgi_output_pipe) < 0) {
         Logger::logError("pipe() failed");
         close(cgi_input_pipe[0]);
@@ -195,20 +197,47 @@ void CgiHandler::executeCgiProcess(short& error_code)
         error_code = 500;
         return;
     }
+
     this->cgi_pid = fork();
-    if (this->cgi_pid == 0)
-    {
+
+    if (this->cgi_pid == 0) { // Дочерний процесс
         Logger::logInfo("Fork successful.");
-        dup2(cgi_input_pipe[0], STDIN_FILENO);
-        dup2(cgi_output_pipe[1], STDOUT_FILENO);
-        close(cgi_input_pipe[0]);
+        dup2(cgi_input_pipe[0], STDIN_FILENO);   // Входной поток
+        dup2(cgi_output_pipe[1], STDOUT_FILENO); // Выходной поток
+        close(cgi_input_pipe[0]); // Закрыть неиспользуемые дескрипторы в дочернем процессе
         close(cgi_input_pipe[1]);
         close(cgi_output_pipe[0]);
         close(cgi_output_pipe[1]);
+
+        Logger::logInfo("Before execve");
+
+        // Записываем в stdout перед execve
+        std::cout << "About to execve..." << std::endl;
+
+        Logger::logInfo("Executing CGI script: " + std::string(this->cgi_args[0]));
+
+        // Исполнение CGI-скрипта
         this->status_exit = execve(this->cgi_args[0], this->cgi_args, this->cgi_envs);
+
+        // Если execve не сработал, вывести ошибку
+        perror("execve failed");
         exit(this->status_exit);
     }
-    else if (this->cgi_pid > 0){}
+    else if (this->cgi_pid > 0) {
+        close(cgi_input_pipe[0]);
+        close(cgi_input_pipe[1]);
+        close(cgi_output_pipe[1]);
+
+        int status;
+        waitpid(this->cgi_pid, &status, 0);
+        if (WIFEXITED(status)) {
+            Logger::logInfo("CGI process completed successfully with exit status: " + std::to_string(WEXITSTATUS(status)));
+            error_code = WEXITSTATUS(status);
+        } else {
+            Logger::logError("CGI process terminated abnormally");
+            error_code = 500;
+        }
+    }
     else {
         Logger::logError("Fork failed");
         error_code = 500;
@@ -246,18 +275,56 @@ std::string CgiHandler::extractPathInfoFromExtension(std::string& path, std::vec
     return (queryPos == std::string::npos ? extractedPathInfo : extractedPathInfo.substr(0, queryPos));
 }
 
+std::string CgiHandler::readCgiOutput()
+{
+    char buffer[128];
+    std::string result = "";
+    ssize_t bytesRead;
+
+    std::cout << "Reading from pipe..." << std::endl;
+
+    // Чтение из pipe
+    while ((bytesRead = read(cgi_output_pipe[0], buffer, sizeof(buffer))) > 0) {
+        result.append(buffer, bytesRead);
+    }
+
+    if (bytesRead == -1) {
+        perror("Error reading from pipe");
+    }
+
+    std::cout << "CGI Output: " << result << std::endl;
+    return result;
+}
+
 short CgiHandler::exec(const ServerConfig::Location& location, HttpRequestParser request)
 {
     Logger::logInfo("CGI execution is running...");
     setupCgiEnvironment(request, location);
     prepareCgiExecutionEnv(request, location);
+
     if (cgi_args[0] == NULL) {
         Logger::logError("CGI execution failed: Invalid arguments");
+
+        Response errorResponse(Response::ERROR, 500, "CGI Execution Error", "", location.cgiPath);
         return 500;
     }
+
     short error_code = 0;
     executeCgiProcess(error_code);
-    return error_code;
+
+    if (error_code == 0) {
+        std::string cgi_output = readCgiOutput();
+        std::cout << "cgi_output =========== >> \n" << cgi_output << std::endl;
+
+        if (cgi_output.empty()) {
+            Logger::logWarning("CGI Output is empty!");
+        }
+
+        Response successResponse(Response::FILE, error_code, "CGI Execution", cgi_output, location.cgiPath);
+        return 0;
+    } else {
+        return error_code;
+    }
 }
 
 bool CgiHandler::isCGIExtension(const std::string& localPath) {

@@ -1,9 +1,6 @@
 #!/usr/local/bin/python3
 import cgi
-import os
-import sys
 
-print(os.environ["QUERY_STRING"], file=sys.stderr)
 
 print("Content-type: text/html\n")
 form = cgi.FieldStorage()
