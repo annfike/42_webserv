@@ -142,7 +142,7 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const Server
     this->cgi_env_variables["SCRIPT_FILENAME"]   = ((position < 0 || (size_t) (position + 8) > location.cgiPath.size()) ? "" : location.cgiPath.substr(position + 8, location.cgiPath.size()));
     this->cgi_env_variables["PATH_INFO"]         = extractPathInfoFromExtension(request.getPath(), location.cgi_extension);
     this->cgi_env_variables["PATH_TRANSLATED"]   = location.root + (this->cgi_env_variables["PATH_INFO"] == "" ? "/" : this->cgi_env_variables["PATH_INFO"]);
-    this->cgi_env_variables["QUERY_STRING"]      = urlDecode(request.getQuery());
+    this->cgi_env_variables["QUERY_STRING"]      = request.getQuery();
     this->cgi_env_variables["REMOTE_ADDR"]       = request.getHeader("host");
 
     position = findSubstringPosition(request.getHeader("host"), ":");
@@ -217,36 +217,6 @@ int CgiHandler::findSubstringPosition(const std::string& inputString, const std:
     return (position != std::string::npos) ? static_cast<int>(position) : -1;
 }
 
-unsigned int fromHexToDecimal(const std::string& hexString)
-{
-	unsigned int decimalValue;
-	std::stringstream stream;
-	stream << hexString;
-	stream >> std::hex >> decimalValue;
-	return (decimalValue);
-}
-
-template <typename T>
-std::string toString(const T value)
-{
-    std::stringstream stream;
-    stream << value;
-    return stream.str();
-}
-
-std::string CgiHandler::urlDecode(std::string& encodedUrl)
-{
-    size_t percentPos = encodedUrl.find("%");
-    while (percentPos != std::string::npos) {
-        if (encodedUrl.length() < percentPos + 2)
-            break;
-        char decodedChar = fromHexToDecimal(encodedUrl.substr(percentPos + 1, 2));
-        encodedUrl.replace(percentPos, 3, toString(decodedChar));
-        percentPos = encodedUrl.find("%");
-    }
-    return (encodedUrl);
-}
-
 std::string CgiHandler::extractPathInfoFromExtension(std::string& path, std::vector<std::string> extensions)
 {
     std::string extractedPathInfo;
@@ -285,11 +255,20 @@ short CgiHandler::exec(const ServerConfig::Location& location, HttpRequestParser
 
 bool CgiHandler::isCGIExtension(const std::string& localPath) {
     const std::string pyExtension = ".py";
-    size_t dotPos = localPath.rfind('.');
+
+    size_t queryPos = localPath.find('?');
+    std::string pathWithoutQuery = localPath;
+
+    if (queryPos != std::string::npos) {
+        pathWithoutQuery = localPath.substr(0, queryPos);
+    }
+
+    size_t dotPos = pathWithoutQuery.rfind('.');
     if (dotPos == std::string::npos) {
         return false;
     }
-    std::string extension = localPath.substr(dotPos);
+
+    std::string extension = pathWithoutQuery.substr(dotPos);
     if (extension == pyExtension) {
         return true;
     }
