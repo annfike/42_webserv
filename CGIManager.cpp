@@ -155,6 +155,12 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const Server
     this->cgi_env_variables["SERVER_PROTOCOL"]   = "HTTP/1.1";
     this->cgi_env_variables["REDIRECT_STATUS"]   = "200";
 
+    // // вывожу все cgi_env_variables для дебага
+    // for (std::map<std::string, std::string>::iterator it = cgi_env_variables.begin();
+    //     it != cgi_env_variables.end(); ++it) {
+    //     std::cout << it->first << " = " << it->second << std::endl;
+    // }
+
     // Создаем массив переменных окружения для CGI-процесс
     this->cgi_envs = (char **)calloc(sizeof(char *), this->cgi_env_variables.size() + 1);
 	std::map<std::string, std::string>::const_iterator it = this->cgi_env_variables.begin();
