@@ -1,5 +1,15 @@
 #include "HttpResponse.hpp"
 
+void removeQuery(std::string& url) {
+    // Находим индекс символа '?'
+    size_t pos = url.find('?');
+
+    // Если символ '?' найден, обрезаем строку до этого символа
+    if (pos != std::string::npos) {
+        url = url.substr(0, pos);  // Оставляем только часть до '?'
+    }
+}
+
 Response::Response(Type type, int code, const std::string& message, const std::string& destination, const std::string& filePath)
     : type(type), code(code), message(message), destination(destination), filePath(filePath) {}
 
@@ -266,10 +276,12 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
 
+    removeQuery(urlLocal);
 	std::string localPath = findLocalPath(location, urlLocal);
-    // std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
+    std::cout << "urlLocal --->>>" << urlLocal << std::endl;
+    std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
     if (localPath.empty())
-        return getErrorResponse(config, 404, "Path Not Found");
+        return getErrorResponse(config, 404, "Path Not Found1");
 
     if (request.getMethod() == "DELETE") 
     {
@@ -331,8 +343,12 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         } else
             return getErrorResponse(config, 403, "Forbidden");
     }
+
+    std::cout << "localPath --->>>" << localPath << std::endl;
+    std::cout << "urlLocal --->>>" << urlLocal << std::endl;
     if (CgiHandler().isCGIExtension(localPath))
     {
+        Logger::logInfo("isCGIExtension() is running...");
         location.cgiPath = localPath;
         short err = CgiHandler().exec(location, request);
         return Response(Response::FILE, err, "CGI Execution", "", localPath);
