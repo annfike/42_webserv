@@ -278,7 +278,6 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     removeQuery(urlLocal);
 	std::string localPath = findLocalPath(location, urlLocal);
-    std::cout << "urlLocal --->>>" << urlLocal << std::endl;
     std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
     if (localPath.empty())
         return getErrorResponse(config, 404, "Path Not Found1");
