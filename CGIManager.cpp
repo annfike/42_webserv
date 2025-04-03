@@ -76,7 +76,7 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, const ServerCon
 
     if (request.getMethod() == "POST") {
         std::stringstream out;
-        out << request.getBody().length();
+        out << request.getBody().size();
         this->cgi_env_variables["CONTENT_LENGTH"] = out.str();
         this->cgi_env_variables["CONTENT_TYPE"]   = request.getHeader("content-type");
     }

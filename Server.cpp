@@ -45,10 +45,16 @@ void Server::execRead(Connection con)
 	std::cout << "----------------- READING FROM FD=" << con.poll.fd << " -----------------" <<std::endl;
 	
 	// Чтение HTTP-запроса от клиента
-	char buffer[2049];
-	ssize_t bytes_read = read(con.poll.fd, buffer, sizeof(buffer) - 1);
+	std::vector<char> accumulatedData;
+	char buffer[4096];
+	ssize_t bytes_read;
 
-	if (bytes_read <= 0)
+	while ((bytes_read = read(con.poll.fd, buffer, sizeof(buffer) - 1)) > 0)
+    {
+        buffer[bytes_read] = '\0'; // Завершаем строку
+        accumulatedData.insert(accumulatedData.end(), buffer, buffer + bytes_read); // Добавляем в накопленные данные
+	}
+	if (bytes_read <= 0 && accumulatedData.empty())
 	{
 		// Если ошибка при чтении или клиент закрыл соединение
 		if (bytes_read < 0) 
@@ -57,12 +63,17 @@ void Server::execRead(Connection con)
 		return;
 	}
 
-	buffer[bytes_read] = '\0'; // Завершаем строку
-	std::cout << "Request received: \n" << buffer << std::endl;
+	//std::cout << "Request received: \n" << accumulatedData.data() << std::endl;
 
 	// Request & Response
 	HttpRequestParser request;
-	request.parse(buffer);
+	try
+    {
+        request.parse(accumulatedData);  // Парсим накопленные данные
+    }
+    catch (const std::exception& e)
+    {}
+
 	request.printRequest();
 	//Response response(Response::FILE, 0, "", "", "/var/www/example");
 	std::cerr << request.hostName << std::endl;

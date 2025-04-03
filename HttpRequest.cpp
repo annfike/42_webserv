@@ -36,7 +36,7 @@ std::string decodeChunkedBody(std::istringstream &request)
     return decodedBody;
 }
 
-void HttpRequestParser::parse(const char* buffer) 
+void HttpRequestParser::parse(const std::vector<char>& buffer) 
 {
         /*buffer = "HTTP/1.1 200 OK\r\n\
 Content-Type: text/plain\r\n\
@@ -50,7 +50,7 @@ chunk 2\r\n\
 0\r\n\
 \r\n";*/
 
-    std::istringstream request(buffer);
+    std::istringstream request(std::string(buffer.begin(), buffer.end()));
     std::string line;
 
     // Parse the request line
@@ -79,13 +79,14 @@ chunk 2\r\n\
         if (cont != headers.end() && cont->second.find("multipart/form-data") != std::string::npos)
             boundary = "--" + cont->second.substr(cont->second.find("boundary=") + 9);
 
-        size_t contentLength = std::strtoul(it->second.c_str(), NULL, 10);
+        contentLength = std::strtoul(it->second.c_str(), NULL, 10);
         body.resize(contentLength);
         request.read(&body[0], contentLength);
     }
     else if (chunked != headers.end() && chunked->second == "chunked")
     {
-        body = decodeChunkedBody(request);
+        decodeChunkedBody(request);
+        //body = decodeChunkedBody(request);
     }
 
     it = headers.find("Host");
@@ -109,7 +110,7 @@ void HttpRequestParser::printRequest() const {
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
         std::cout << it->first << ": " << it->second << std::endl;
     }
-    std::cout << "Body: " << body << std::endl;
+    std::cout << "Body: " << body.data() << std::endl;
     std::cout << "----------------------------------------------------------" << std::endl;
 }
 
@@ -121,7 +122,7 @@ const std::string& HttpRequestParser::getUrl() const {
     return url;
 }
 
-const std::string& HttpRequestParser::getBody() const {
+const std::vector<char>& HttpRequestParser::getBody() const {
     return body;
 }
 

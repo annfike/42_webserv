@@ -200,17 +200,22 @@ bool isCGIExtension(const std::string& localPath) {
     return false;
 }
 
-void parseMultipartFormData(std::istringstream &request, const std::string &boundary, std::string& fileName, std::ostringstream& body) 
+void parseMultipartFormData(std::istringstream &request, const std::string &boundary, std::string& fileName, std::ostringstream& body, size_t length) 
 {
     std::string line;
     std::string currentPart;
     std::string contentType;
+    char buffer[1024];
+    size_t bytesRead = 0;
+    length = length - boundary.length() - 2 - 4; // '--' in the boundary, '--\r\n' in the end
     
     std::getline(request, line);
+    bytesRead += line.size() + 1;
     if (line.find(boundary) == std::string::npos) 
         return;
 
     std::getline(request, line);
+    bytesRead += line.size() + 1;
     if (line.find("Content-Disposition:") != std::string::npos) 
     {
         size_t filenamePos = line.find("filename=\"");
@@ -223,38 +228,31 @@ void parseMultipartFormData(std::istringstream &request, const std::string &boun
     }
 
     std::getline(request, line);
+    bytesRead += line.size() + 1;
     if (line.find("Content-Type:") != std::string::npos)
     {}
 
     std::getline(request, line);
+    bytesRead += line.size() + 1;
     if (line == "\r")
     {
         // Пропускаем пустую строку перед данными
     }
 
-    std::getline(request, line);
-    if (!line.empty() && *line.rbegin() == '\r')
-        line.erase(line.length() - 1);
-    if (line.find(boundary) == std::string::npos) 
-        body.write(line.c_str(), line.size());
+    std::cerr << "\nbytesRead:" << bytesRead <<", length:" << length << "\n";
 
-    while (std::getline(request, line))
+    while (bytesRead < length)
     {
-        if (line.find(boundary) != std::string::npos) 
-            continue;
-        
-        if (!line.empty() && *line.rbegin() == '\r')
-            line.erase(line.length() - 1);
+        size_t toRead = std::min(sizeof(buffer), length - bytesRead);
+        request.read(buffer, toRead);
+        size_t count = request.gcount();
+        bytesRead += count;
 
-        body.put('\n');
-        body.write(line.c_str(), line.size());
+        if (count == 0)
+            break;
+
+        body.write(buffer, count);
     }
-
-    char buffer[1024];
-        while (request.read(buffer, sizeof(buffer)))
-        {
-            body.write(buffer, request.gcount());
-        }
 }
 
 Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
@@ -318,20 +316,21 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         if (folder.empty())
             folder = location.root;        
 
-        std::istringstream bodys(request.getBody());
+        std::istringstream bodys(request.getBody().data());
         std::string filename;
         std::ostringstream body;
-        parseMultipartFormData(bodys, request.boundary, filename, body);
+        parseMultipartFormData(bodys, request.boundary, filename, body, request.contentLength);
         filename = folder.substr(1) + '/' + filename;
         std::cerr << "filename=" << filename;
 
         // Сохраняем тело запроса в файл
         std::ofstream outFile(filename.c_str(), std::ios::binary);
         if (outFile && outFile.is_open()) {
-            outFile << body.str();
+            outFile << body.str().c_str();
             outFile.close();
 
-            std::cerr << "/*" << body.str() << "*/";
+            std::cerr << std::endl<< std::endl<< "/*" << body.str() << "*/\n" << std::endl;
+            std::cerr << std::endl<< std::endl<< "/*" << request.getBody().data() << "*/\n" << std::endl;
 
             return Response(Response::FILE, 200, "File uploaded successfully!");
         }
@@ -458,6 +457,9 @@ const std::string Response::toHttpResponse() const {
             break;
         case FILE:
             {
+                if (filePath.empty())
+                    break;
+
                 std::cerr << "file reading ... " << filePath << "!" << std::endl;
                 std::ifstream file(filePath.c_str());
                 if (!file)
@@ -482,7 +484,8 @@ const std::string Response::toHttpResponse() const {
     }
 
     std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
-    std::cout << response.str().substr(0, 500) << std::endl;
+    std::cout << response.str()<< std::endl;;
+    //std::cout << response.str().substr(0, 500) << std::endl;
     std::cout << "----------------------------------------------------------" << std::endl;
     return response.str();
 }

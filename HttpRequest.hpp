@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iostream>
 #include <cstdlib>
+#include <vector>
 
 class HttpRequestParser {
 private:
@@ -14,17 +15,17 @@ private:
     std::string path;
     std::string httpVersion;
     std::map<std::string, std::string> headers;
-    std::string body;    
+    std::vector<char> body;    
     std::string query;
 
 public:
     HttpRequestParser();
-    void parse(const char* buffer);
+    void parse(const std::vector<char>& buffer);
     void printRequest() const;
 
     const std::string& getMethod() const;
     const std::string& getUrl() const;
-    const std::string& getBody() const;
+    const std::vector<char>& getBody() const;
     const std::string& getHeader(const std::string& key) const;
     std::map<std::string, std::string>& getHeaders();
     std::string& getQuery();
@@ -32,6 +33,7 @@ public:
 
     std::string hostName;
     std::string boundary;
+    size_t contentLength;
 };
 
 #endif // HTTPREQUEST_HPP

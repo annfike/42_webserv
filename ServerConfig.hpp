@@ -34,7 +34,7 @@ public:
     std::string listen_IP;
     std::map<int, std::string> error_pages; //code-path
     std::string server_name;
-    unsigned long client_max_body_size;
+    size_t client_max_body_size;
     std::map<std::string, Location> locations;
 
     void print() const;
