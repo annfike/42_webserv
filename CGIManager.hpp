@@ -13,6 +13,10 @@
 #include "HttpRequest.hpp"
 #include "Logger.hpp"
 #include "ServerConfig.hpp"
+
+// Предварительное объявление класса Response (это позволяет компилятору знать о типе Response)
+class Response;
+
 #include "HttpResponse.hpp"
 
 class CgiHandler {
@@ -40,7 +44,7 @@ class CgiHandler {
     void executeCgiProcess(short& error_code);
     void setCgiPath(const std::string& cgi_path);
     void setCgiPid(pid_t cgi_pid);
-    short exec(const ServerConfig::Location& location, HttpRequestParser request);
+    Response exec(const ServerConfig::Location& location, HttpRequestParser request);
     std::string readCgiOutput();
 
     const pid_t& getCgiPid() const;

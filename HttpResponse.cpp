@@ -10,8 +10,11 @@ void removeQuery(std::string& url) {
     }
 }
 
-Response::Response(Type type, int code, const std::string& message, const std::string& destination, const std::string& filePath)
-    : type(type), code(code), message(message), destination(destination), filePath(filePath) {}
+Response::Response(Type type, int code, const std::string& message, const std::string& destination,
+                   const std::string& filePath, const std::string& cgi_output)
+    : type(type), code(code), message(message), destination(destination), filePath(filePath), cgi_output(cgi_output) {
+        // std::cout << "Response constructor called with type: " << type << std::endl;
+    }
 
 void Response::print() const {
     std::cout << "-------------------Response-------------------------------: " << std::endl;
@@ -28,6 +31,9 @@ void Response::print() const {
             break;
         case FILE:
             std::cerr << "File: " << filePath << std::endl;
+            break;
+        case CGI:
+            std::cerr << "CGI: " << cgi_output << std::endl;
             break;
     }
     std::cout << "----------------------------------------------------------" << std::endl;
@@ -278,7 +284,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     removeQuery(urlLocal);
 	std::string localPath = findLocalPath(location, urlLocal);
-    std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
+    // std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
     if (localPath.empty())
         return getErrorResponse(config, 404, "Path Not Found1");
 
@@ -343,17 +349,10 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
             return getErrorResponse(config, 403, "Forbidden");
     }
 
-    std::cout << "localPath =========== >> " << localPath << std::endl;
-    std::cout << "urlLocal =========== >> " << urlLocal << std::endl;
     if (CgiHandler().isCGIExtension(localPath)) {
-        Logger::logInfo("isCGIExtension() is running...");
+        // Logger::logInfo("isCGIExtension() is running...");
         location.cgiPath = localPath;
-
-        short err = CgiHandler().exec(location, request);
-        if (err == 0)
-            return Response(Response::FILE, err, "CGI Execution", "", location.cgiPath);
-        else
-            return Response(Response::ERROR, err, "CGI Execution Error", "", location.cgiPath);
+        return CgiHandler().exec(location, request);
     }
     return Response(Response::FILE, 200, "", "", localPath);
 }
@@ -408,6 +407,9 @@ const std::string Response::toHttpResponse() const {
         case FILE:
             response << "HTTP/1.1 " << code << " OK\r\n";
             break;
+        case CGI:  // Добавляем обработку для типа CGI
+            response << "HTTP/1.1 " << code << " OK\r\n";
+            break;
         default:
             response << "HTTP/1.1 500 Internal Server Error\r\n";
             break;
@@ -434,6 +436,7 @@ const std::string Response::toHttpResponse() const {
     response << "\r\n"; // Пустая строка между заголовками и телом
 
     // Добавляем тело ответа
+    // std::cout << "type: " << type << std::endl;
     switch (type) {
         case ERROR:
             response << "<html><body><h1>Error " << code << "</h1><p>" << message << "</p></body></html>";
@@ -464,6 +467,23 @@ const std::string Response::toHttpResponse() const {
                 }
             }
             break;
+        case CGI:
+            {
+                // Logger::logInfo("Inside block CGI!");
+                std::string cgi_output_copy = cgi_output;
+                const std::string contentTypeHeader = "Content-Type: text/html";
+                size_t pos = cgi_output_copy.find(contentTypeHeader);
+
+                if (pos != std::string::npos) {
+                    size_t endPos = cgi_output_copy.find("\r\n", pos);
+                    if (endPos != std::string::npos) {
+                        cgi_output_copy.erase(pos, endPos - pos + 2);
+                    }
+                }
+
+                response << cgi_output_copy;
+                break;
+            }
         default:
             response << "<html><body><h1>500 Internal Server Error</h1><p>Something went wrong.</p></body></html>";
             break;
