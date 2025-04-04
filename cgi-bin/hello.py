@@ -1,7 +1,6 @@
 #!/usr/bin/python3
-import cgi # type: ignore
+import cgi
 
-print("Content-type: text/html\n")
 form = cgi.FieldStorage()
 name = form.getvalue("name")
 if name:

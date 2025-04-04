@@ -1,7 +1,20 @@
 #include "HttpResponse.hpp"
 
-Response::Response(Type type, int code, const std::string& message, const std::string& destination, const std::string& filePath)
-    : type(type), code(code), message(message), destination(destination), filePath(filePath) {}
+void removeQuery(std::string& url) {
+    // Находим индекс символа '?'
+    size_t pos = url.find('?');
+
+    // Если символ '?' найден, обрезаем строку до этого символа
+    if (pos != std::string::npos) {
+        url = url.substr(0, pos);  // Оставляем только часть до '?'
+    }
+}
+
+Response::Response(Type type, int code, const std::string& message, const std::string& destination,
+                   const std::string& filePath, const std::string& cgi_output)
+    : type(type), code(code), message(message), destination(destination), filePath(filePath), cgi_output(cgi_output) {
+        // std::cout << "Response constructor called with type: " << type << std::endl;
+    }
 
 void Response::print() const {
     std::cout << "-------------------Response-------------------------------: " << std::endl;
@@ -18,6 +31,9 @@ void Response::print() const {
             break;
         case FILE:
             std::cerr << "File: " << filePath << std::endl;
+            break;
+        case CGI:
+            std::cerr << "CGI: " << cgi_output << std::endl;
             break;
     }
     std::cout << "----------------------------------------------------------" << std::endl;
@@ -139,12 +155,11 @@ std::string getIndexFile(const ServerConfig::Location& location, const std::stri
     return "";
 }
 
-Response getErrorResponse(const ServerConfig& config, int code, std::string message) 
+Response getErrorResponse(const ServerConfig& config, int code, std::string message)
 {
     std::map<int, std::string>::const_iterator err = config.error_pages.find(code);
     if (err != config.error_pages.end())
         return Response(Response::REDIRECT, 301, "", err->second);
-        
     return Response(Response::ERROR, code, message);
 }
 
@@ -175,29 +190,6 @@ Response generateFolderList(const ServerConfig& config, const std::string& folde
     html << "</ul></body></html>";
 
     return Response(Response::FOLDER_LIST, 200, html.str());
-}
-
-#include <string>
-
-bool isCGIExtension(const std::string& localPath) {
-    printf("tuta\n");
-    const std::string cgiExtensions[] = {".cgi", ".pl", ".py", ".php"};
-    const size_t numExtensions = sizeof(cgiExtensions) / sizeof(cgiExtensions[0]);
-
-    size_t dotPos = localPath.rfind('.');
-    if (dotPos == std::string::npos) {
-        return false;
-    }
-
-    std::string extension = localPath.substr(dotPos);
-    printf("extension >>> %s\n", extension.c_str());
-
-    for (size_t i = 0; i < numExtensions; ++i) {
-        if (extension == cgiExtensions[i]) {
-            return true;
-        }
-    }
-    return false;
 }
 
 void parseMultipartFormData(std::istream &request, const std::string &boundary, std::string& fileName, std::vector<char>& fileData, size_t length) 
@@ -255,9 +247,6 @@ void parseMultipartFormData(std::istream &request, const std::string &boundary, 
 }
 
 Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
-    printf("Request method ==: %s\n", request.getMethod().c_str());
-    printf("Request path ==: %s\n", request.getPath().c_str());
-    printf("Request headers ==: \n");
     std::map<std::string, std::string> headers = request.getHeaders();
     for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it) {
         printf("  %s: %s\n", it->first.c_str(), it->second.c_str());
@@ -265,7 +254,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     std::string urlLocal;
     std::string url = request.getUrl();
-    const ServerConfig::Location location = getLocation(config, url, &urlLocal);
+    ServerConfig::Location location = getLocation(config, url, &urlLocal);
     //std::cerr << "location index: " << location_index << "+++";
     if (location.path.empty() ) {
         std::cerr << "nooo getlocation" << std::endl;
@@ -290,13 +279,11 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
 
+    removeQuery(urlLocal);
 	std::string localPath = findLocalPath(location, urlLocal);
-    printf("localPath@@@@@@@@: %s\n", localPath.c_str());
-    printf("urlLocal@@@@@@@@: %s\n", urlLocal.c_str());
-    std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
-
-    if (localPath.empty()) 
-        return getErrorResponse(config, 404, "Path Not Found");
+    // std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
+    if (localPath.empty())
+        return getErrorResponse(config, 404, "Path Not Found1");
 
     if (request.getMethod() == "DELETE") 
     {
@@ -308,12 +295,13 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     if (request.getMethod() == "POST")
     {
+        std::cout << "request.boundary: " << request.boundary << std::endl;
         if (request.boundary.empty())
             return getErrorResponse(config, 500, "Not supported!!!");
 
         std::string folder = location.upload_store;
         if (folder.empty())
-            folder = location.root;        
+            folder = location.root;
 
         std::stringstream bodys;
         bodys.write(request.getBody().data(), request.getBody().size());
@@ -348,7 +336,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         if (localPath.empty() || url[url.length() - 1] != '/')
             return Response(Response::REDIRECT, 301, "", url + "/", "");
         else if (!(iFile = getIndexFile(location, localPath)).empty()) {
-            if (isCGIExtension(localPath))
+            if (CgiHandler().isCGIExtension(localPath))
                 return Response(Response::FILE, 200, "CGI Execution", "", localPath + "/index.html");
             else
                 return Response(Response::REDIRECT, 301, "", url + iFile);
@@ -359,11 +347,10 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
             return getErrorResponse(config, 403, "Forbidden");
     }
 
-    if (isCGIExtension(localPath))
-    {
-        printf("localPath =================>>>>>>>>>>>>>>>>>>>>%s", localPath.c_str());
-        short err = CgiHandler().exec(location, request);
-        return Response(Response::FILE, err, "CGI Execution", "", localPath);
+    if (CgiHandler().isCGIExtension(localPath)) {
+        // Logger::logInfo("isCGIExtension() is running...");
+        location.cgiPath = localPath;
+        return CgiHandler().exec(location, request);
     }
     return Response(Response::FILE, 200, "", "", localPath);
 }
@@ -390,7 +377,7 @@ const std::string Response::toHttpResponse() const {
     // Определяем Content-Type по расширению файла
     std::string contentType = "text/html"; // По умолчанию HTML
     if (type == FILE) {
-        std::cerr << "TYPE!   filePath: " << filePath << std::endl;
+        std::cout << "TYPE!   filePath: " << filePath << std::endl;
         std::string ext = filePath.substr(filePath.find_last_of('.') + 1);
         if (ext == "html" || ext == "htm") contentType = "text/html";
         else if (ext == "txt") contentType = "text/plain";
@@ -416,6 +403,9 @@ const std::string Response::toHttpResponse() const {
             response << "HTTP/1.1 " << code << " OK\r\n";
             break;
         case FILE:
+            response << "HTTP/1.1 " << code << " OK\r\n";
+            break;
+        case CGI:  // Добавляем обработку для типа CGI
             response << "HTTP/1.1 " << code << " OK\r\n";
             break;
         default:
@@ -444,6 +434,7 @@ const std::string Response::toHttpResponse() const {
     response << "\r\n"; // Пустая строка между заголовками и телом
 
     // Добавляем тело ответа
+    // std::cout << "type: " << type << std::endl;
     switch (type) {
         case ERROR:
             response << "<html><body><h1>Error " << code << "</h1><p>" << message << "</p></body></html>";
@@ -459,7 +450,7 @@ const std::string Response::toHttpResponse() const {
                 if (filePath.empty())
                     break;
 
-                std::cerr << "file reading ... " << filePath << "!" << std::endl;
+                std::cout << "file reading ... " << filePath << "!" << std::endl;
                 std::ifstream file(filePath.c_str());
                 if (!file)
                     std::cerr << "Error reading file " << filePath << std::endl;
@@ -477,6 +468,23 @@ const std::string Response::toHttpResponse() const {
                 }
             }
             break;
+        case CGI:
+            {
+                // Logger::logInfo("Inside block CGI!");
+                std::string cgi_output_copy = cgi_output;
+                const std::string contentTypeHeader = "Content-Type: text/html";
+                size_t pos = cgi_output_copy.find(contentTypeHeader);
+
+                if (pos != std::string::npos) {
+                    size_t endPos = cgi_output_copy.find("\r\n", pos);
+                    if (endPos != std::string::npos) {
+                        cgi_output_copy.erase(pos, endPos - pos + 2);
+                    }
+                }
+
+                response << cgi_output_copy;
+                break;
+            }
         default:
             response << "<html><body><h1>500 Internal Server Error</h1><p>Something went wrong.</p></body></html>";
             break;

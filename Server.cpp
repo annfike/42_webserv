@@ -90,7 +90,6 @@ void Server::execRead(Connection con)
 	const std::string http_response = response.toHttpResponse();
 	// Отправка ответа клиенту
 	send(con.poll.fd, http_response.c_str(), http_response.size(), MSG_DONTWAIT | MSG_NOSIGNAL);
-	
 	socketManager.closeConnection(con);
 }
 

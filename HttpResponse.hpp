@@ -22,11 +22,20 @@ public:
         ERROR,
         REDIRECT,
         FOLDER_LIST,
-        FILE
+        FILE,
+        CGI
     };
 
-    Response(Type type, int code = 0, const std::string& message = "", const std::string& destination = "", const std::string& filePath = "");
-    void print() const;
+    Response(
+        Type type,
+        int code = 0,
+        const std::string& message = "",
+        const std::string& destination = "",
+        const std::string& filePath = "",
+        const std::string& cgi_output = ""
+    );
+
+    void              print() const;
     static Response handleRequest(const ServerConfig& config, HttpRequestParser request);
     const std::string toHttpResponse() const;
 
@@ -37,6 +46,7 @@ private:
     std::string destination;
     std::string filePath;
     std::string urlLocal;
+    std::string cgi_output;
 };
 
 #endif // HTTPRESPONSE_HPP
