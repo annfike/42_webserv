@@ -2,9 +2,8 @@
 
 HttpRequestParser::HttpRequestParser() {}
 
-std::string decodeChunkedBody(std::istringstream &request)
+void decodeChunkedBody(std::istream &request, std::vector<char>& body)
 {
-    std::string decodedBody;
     std::string line;
     
     while (std::getline(request, line)) {
@@ -22,21 +21,18 @@ std::string decodeChunkedBody(std::istringstream &request)
             break;
 
         // Read the chunk data
-        char *buffer = new char[chunkSize + 1];
-        request.read(buffer, chunkSize);
-        buffer[chunkSize] = '\0';  // Null-terminate
+        std::vector<char> buffer(chunkSize);
+        request.read(buffer.data(), chunkSize);
+        body.insert(body.end(), buffer.begin(), buffer.end());
 
-        decodedBody.append(buffer, chunkSize);
-        delete[] buffer;
+        body.insert(body.end(), buffer.begin(), buffer.end());
 
         // Read and discard the trailing \r\n
         std::getline(request, line);
     }
-
-    return decodedBody;
 }
 
-void HttpRequestParser::parse(const char* buffer) 
+void HttpRequestParser::parse(const std::vector<char>& buffer) 
 {
         /*buffer = "HTTP/1.1 200 OK\r\n\
 Content-Type: text/plain\r\n\
@@ -50,13 +46,15 @@ chunk 2\r\n\
 0\r\n\
 \r\n";*/
 
-    std::istringstream request(buffer);
+    size_t pos = 0;
     std::string line;
 
-    // Parse the request line
-    std::getline(request, line);
-    std::istringstream requestLine(line);
-    requestLine >> method >> url >> httpVersion;
+    size_t lineEnd = std::find(buffer.begin(), buffer.end(), '\n') - buffer.begin();
+    std::string requestLine(buffer.begin(), buffer.begin() + lineEnd);
+    pos = lineEnd + 1;
+
+    std::istringstream requestStream(requestLine);
+    requestStream >> method >> url >> httpVersion;
 
     // Find the query parameters if any
     size_t queryPos = url.find('?');
@@ -84,13 +82,20 @@ chunk 2\r\n\
     }
 
     // Parse headers
-    while (std::getline(request, line)) {
-        if (line.empty() || line == "\r")
-            break; // End of headers
+    while (pos < buffer.size()) 
+    {
+        lineEnd = std::find(buffer.begin() + pos, buffer.end(), '\n') - buffer.begin();
+        std::string line(buffer.begin() + pos, buffer.begin() + lineEnd);
+        pos = lineEnd + 1;
+
+        if (line == "\r" || line.empty()) 
+            break; // Конец заголовков
+
         size_t colonPos = line.find(':');
-        if (colonPos != std::string::npos) {
+        if (colonPos != std::string::npos) 
+        {
             std::string key = line.substr(0, colonPos);
-            std::string value = line.substr(colonPos + 2, line.size() - colonPos - 3); // Skip ": "
+            std::string value = line.substr(colonPos + 2, line.size() - colonPos - 3);
             headers[key] = value;
         }
     }
@@ -104,13 +109,15 @@ chunk 2\r\n\
         if (cont != headers.end() && cont->second.find("multipart/form-data") != std::string::npos)
             boundary = "--" + cont->second.substr(cont->second.find("boundary=") + 9);
 
-        size_t contentLength = std::strtoul(it->second.c_str(), NULL, 10);
+        contentLength = std::strtoul(it->second.c_str(), NULL, 10);
         body.resize(contentLength);
-        request.read(&body[0], contentLength);
+        body.assign(buffer.begin() + pos, buffer.begin() + pos + contentLength);
+
+        //body.push_back('\0');
     }
     else if (chunked != headers.end() && chunked->second == "chunked")
     {
-        body = decodeChunkedBody(request);
+        decodeChunkedBody(requestStream, body);
     }
 
     it = headers.find("Host");
@@ -134,7 +141,7 @@ void HttpRequestParser::printRequest() const {
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
         std::cout << it->first << ": " << it->second << std::endl;
     }
-    std::cout << "Body: " << body << std::endl;
+    std::cout << "Body: " << body.data() << std::endl;
     std::cout << "Query: " << query << std::endl;
     std::cout << "----------------------------------------------------------" << std::endl;
 }
@@ -147,7 +154,7 @@ const std::string& HttpRequestParser::getUrl() const {
     return url;
 }
 
-const std::string& HttpRequestParser::getBody() const {
+const std::vector<char>& HttpRequestParser::getBody() const {
     return body;
 }
 

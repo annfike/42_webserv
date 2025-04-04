@@ -14,6 +14,7 @@
 #include <fstream>
 #include <filesystem>
 #include "CGIManager.hpp"
+#include <cmath>
 
 class Response {
 public:
