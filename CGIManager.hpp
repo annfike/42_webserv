@@ -7,6 +7,8 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "HttpRequest.hpp"
 #include "Logger.hpp"

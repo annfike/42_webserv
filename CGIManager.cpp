@@ -227,7 +227,12 @@ void CgiHandler::executeCgiProcess(short& error_code)
         int status;
         waitpid(this->cgi_pid, &status, 0);
         if (WIFEXITED(status)) {
-            Logger::logInfo("CGI process completed successfully with exit status: " + std::to_string(WEXITSTATUS(status)));
+            // Использование std::ostringstream для преобразования статуса в строку
+            std::ostringstream oss;
+            oss << WEXITSTATUS(status);
+            std::string statusStr = oss.str();
+
+            Logger::logInfo("CGI process completed successfully with exit status: " + statusStr);
             error_code = WEXITSTATUS(status);
         } else {
             Logger::logError("CGI process terminated abnormally");
