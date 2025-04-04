@@ -2,8 +2,6 @@
 
 import traceback
 
-print("Content-type: text/html\n")
-
 try:
     print("<h1>This is an error page</h1>")
     # Deliberate ZeroDivisionError to test error handling
