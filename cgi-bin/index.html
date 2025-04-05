@@ -1,85 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CGI Test</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            text-align: center;
-            padding: 50px;
-            margin: 0;
-            box-sizing: border-box;
-        }
-        h1 {
-            color: #333;
-            font-size: 2rem;
-            margin-bottom: 30px;
-        }
-        form {
-            background: white;
-            padding: 20px;
-            margin: 20px auto;
-            width: 320px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #555;
-        }
-        input[type="text"], input[type="submit"] {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 1rem;
-            box-sizing: border-box;
-        }
-        input[type="submit"] {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        input[type="submit"]:hover {
-            background-color: #218838;
-        }
-        input[type="submit"]:focus, input[type="text"]:focus {
-            outline: none;
-            border-color: #80bdff;
-            box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CGI Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      text-align: center;
+      padding: 50px;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      color: #333;
+      font-size: 2rem;
+      margin-bottom: 30px;
+    }
+
+    .form-pair {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .centered-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    form {
+      background: white;
+      padding: 20px;
+      width: 320px;
+      border-radius: 8px;
+      box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    input[type="text"],
+    input[type="submit"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    input[type="submit"] {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #218838;
+    }
+
+    input[type="submit"]:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #80bdff;
+      box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+    }
+  </style>
 </head>
 <body>
-    <h1>Welcome to the CGI Test</h1>
+  <h1>Welcome to the CGI Test</h1>
 
+  <!-- Hello (GET + POST side-by-side) -->
+  <div class="form-pair">
     <form action="/cgi-bin/hello.py" method="get">
-        <label for="name">Enter your name: </label>
-        <input type="text" id="name" name="name" required>
-        <input type="submit" value="Submit">
+      <label for="name-get">Enter your name (GET):</label>
+      <input type="text" id="name-get" name="name" required />
+      <input type="submit" value="Submit (GET)" />
     </form>
 
+    <form action="/cgi-bin/hello.py" method="post">
+      <label for="name-post">Enter your name (POST):</label>
+      <input type="text" id="name-post" name="name" required />
+      <input type="submit" value="Submit (POST)" />
+    </form>
+  </div>
+
+  <!-- Greet (GET + POST side-by-side) -->
+  <div class="form-pair">
     <form action="/cgi-bin/greet.py" method="get">
-        <label for="greeting">Enter your greeting: </label>
-        <input type="text" id="greeting" name="greeting" required>
-        <input type="submit" value="Send Greeting">
+      <label for="greeting-get">Enter your greeting (GET):</label>
+      <input type="text" id="greeting-get" name="greeting" required />
+      <input type="submit" value="Send Greeting (GET)" />
     </form>
 
+    <form action="/cgi-bin/greet.py" method="post">
+      <label for="greeting-post">Enter your greeting (POST):</label>
+      <input type="text" id="greeting-post" name="greeting" required />
+      <input type="submit" value="Send Greeting (POST)" />
+    </form>
+  </div>
+
+  <!-- Time and Error grouped and centered -->
+  <div class="centered-group">
     <form action="/cgi-bin/time.py" method="get">
-        <input type="submit" value="Get Current Time">
+      <label for="time-button">Get the current server time:</label>
+      <input type="submit" id="time-button" value="Get Current Time" />
     </form>
 
     <form action="/cgi-bin/error.py" method="get">
-        <input type="submit" value="Cause Error">
+      <label for="error-button">Cause a test error:</label>
+      <input type="submit" id="error-button" value="Cause Error" />
     </form>
+  </div>
 </body>
 </html>
