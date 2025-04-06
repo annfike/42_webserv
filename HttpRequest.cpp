@@ -25,8 +25,6 @@ void decodeChunkedBody(std::istream &request, std::vector<char>& body)
         request.read(buffer.data(), chunkSize);
         body.insert(body.end(), buffer.begin(), buffer.end());
 
-        body.insert(body.end(), buffer.begin(), buffer.end());
-
         // Read and discard the trailing \r\n
         std::getline(request, line);
     }
@@ -93,7 +91,7 @@ chunk 2\r\n\
 
         size_t colonPos = line.find(':');
         if (colonPos != std::string::npos) 
-        {
+        {                                                                                                                                                           
             std::string key = line.substr(0, colonPos);
             std::string value = line.substr(colonPos + 2, line.size() - colonPos - 3);
             headers[key] = value;
@@ -133,7 +131,7 @@ chunk 2\r\n\
 }
 
 void HttpRequestParser::printRequest() const {
-    std::cout << "-------------------Request-------------------------------" << std::endl;
+    std::cout << "-------------------Request parsed --------------------------" << std::endl;
     std::cout << "Method: " << method << std::endl;
     std::cout << "URL: " << url << std::endl;
     std::cout << "Host: " << hostName << std::endl;
@@ -141,9 +139,13 @@ void HttpRequestParser::printRequest() const {
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
         std::cout << it->first << ": " << it->second << std::endl;
     }
-    std::cout << "Body: " << body.data() << std::endl;
+    std::cout << "Body: ";
+    for (size_t i = 0; i < body.size(); i++) {
+        std::cout << body[i];
+    }
+    std::cout << std::endl;
     std::cout << "Query: " << query << std::endl;
-    std::cout << "----------------------------------------------------------" << std::endl;
+    std::cout << "------------------End of Request parsed------------------------------\n\n";
 }
 
 const std::string& HttpRequestParser::getMethod() const {

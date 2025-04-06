@@ -30,7 +30,7 @@ void Server::parseConfig(const std::string &config)
 	errLoc.autoindex = false;
 	for (size_t i = 0; i < servers.size(); ++i)
 	{
-		servers[i].locations[errLoc.root] = errLoc;
+		servers[i].locations[errLoc.path] = errLoc;
 	}
 
 	for (size_t i = 0; i < servers.size(); ++i)
@@ -62,11 +62,11 @@ void Server::execRead(Connection con)
 		return;
 	}
 
-	std::cout << "Request received: \n";
+	std::cout << "\n---> Request received: \n";
     for (size_t i = 0; i < std::min(accumulatedData.size(), size_t(500)); i++) {
         std::cout << accumulatedData[i];
     }
-    std::cout << std::endl;
+	std::cout << "---> End of Request\n\n";
 
 	// Request & Response
 	HttpRequestParser request;
