@@ -286,7 +286,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         std::cerr << "url in POST: " << url << std::endl;
         if (CgiHandler().isCGIExtension(url)) {
             Logger::logInfo("isCGIExtension() is running...");
-            location.cgiPath = url;
+            location.cgiPath = url.substr(1);
             return CgiHandler().execPost(location, request);
         }
     }

@@ -132,8 +132,8 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const Server
     scriptExtension = location.cgiPath.substr(location.cgiPath.find("."));
 
     this->cgi_env_variables["AUTH_TYPE"]         = "Basic";
-    this->cgi_env_variables["CONTENT_LENGTH"]    = request.getHeader("content-length");
-    this->cgi_env_variables["CONTENT_TYPE"]      = request.getHeader("content-type");
+    this->cgi_env_variables["CONTENT_LENGTH"]    = request.getHeader("Content-Length");
+    this->cgi_env_variables["CONTENT_TYPE"]      = request.getHeader("Content-Type");
     this->cgi_env_variables["GATEWAY_INTERFACE"] = "CGI/1.1";
 
     position = findSubstringPosition(location.cgiPath, "cgi-bin/");
@@ -170,8 +170,8 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const Server
 	}
 
 	this->cgi_args = (char **)malloc(sizeof(char *) * 3);
-	this->cgi_args[0] = strdup(location.cgiPath.c_str());
-	this->cgi_args[1] = strdup(location.cgiPath.c_str());
+	this->cgi_args[0] = (char *)"/usr/bin/python3";
+	this->cgi_args[1] = (char *)location.cgiPath.c_str();
 	this->cgi_args[2] = NULL;
 }
 
@@ -213,11 +213,17 @@ void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_
             std::cerr << this->cgi_envs[i] << std::endl;
         }
 
-        this->status_exit = execve("/home/sshevche/Desktop/webserver-draft/cgi-bin/hello.py", this->cgi_args, this->cgi_envs);
+        std::cerr << "Args: " << std::endl;
+        for (int i = 0; this->cgi_args[i] != NULL; ++i) {
+            std::cerr << this->cgi_args[i] << std::endl;
+        }
+
+        this->status_exit = execve(this->cgi_args[0], this->cgi_args, this->cgi_envs);
         perror("execve failed");
         exit(this->status_exit);
     }
     else if (this->cgi_pid > 0) {
+        // exit(0);
         
         close(cgi_input_pipe[0]);
         close(cgi_output_pipe[1]);
@@ -278,7 +284,18 @@ void CgiHandler::executeCgiProcess(short& error_code)
         close(cgi_output_pipe[0]);
         close(cgi_output_pipe[1]);
 
-        Logger::logInfo("Executing CGI script: " + std::string(this->cgi_args[0]));
+        // Logger::logInfo("Executing CGI script: " + std::string(this->cgi_args[0]));
+        std::cerr << "Executing CGI script: " << this->cgi_args[0] << std::endl;
+
+        std::cerr << "Environment in GET: " << std::endl;
+        for (int i = 0; this->cgi_envs[i] != NULL; ++i) {
+            std::cerr << this->cgi_envs[i] << std::endl;
+        }
+
+        std::cerr << "Args in GET: " << std::endl;
+        for (int i = 0; this->cgi_args[i] != NULL; ++i) {
+            std::cerr << this->cgi_args[i] << std::endl;
+        }
 
         // Исполнение CGI-скрипта
         this->status_exit = execve(this->cgi_args[0], this->cgi_args, this->cgi_envs);
