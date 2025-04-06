@@ -94,7 +94,7 @@
       <input type="submit" value="Submit (GET)" />
     </form>
 
-    <form action="/cgi-bin/hello.py" method="post">
+    <form action="/cgi-bin/hello.py" method="post" enctype="application/x-www-form-urlencoded">
       <label for="name-post">Enter your name (POST):</label>
       <input type="text" id="name-post" name="name" required />
       <input type="submit" value="Submit (POST)" />

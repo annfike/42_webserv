@@ -42,9 +42,11 @@ class CgiHandler {
     void prepareCgiExecutionEnv(HttpRequestParser& request, const ServerConfig::Location& location);
     void setupCgiEnvironment(HttpRequestParser& request, const ServerConfig::Location& location);
     void executeCgiProcess(short& error_code);
+    void executeCgiProcessForPost(const std::string& body, short& error_code);
     void setCgiPath(const std::string& cgi_path);
     void setCgiPid(pid_t cgi_pid);
     Response exec(const ServerConfig::Location& location, HttpRequestParser request);
+    Response execPost(const ServerConfig::Location& location, HttpRequestParser request);
     std::string readCgiOutput();
 
     const pid_t& getCgiPid() const;
@@ -55,6 +57,8 @@ class CgiHandler {
     std::string extractPathInfoFromExtension(std::string& path, std::vector<std::string> extensions);
     std::string urlDecode(std::string& path);
     bool isCGIExtension(const std::string& localPath);
+    void freeCgiEnv();
+    void freeCgiArgs();
 };
 
 #endif
