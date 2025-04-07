@@ -76,21 +76,24 @@ void Server::execRead(Connection con)
     }
     catch (const std::exception& e)
     {}
+	
+	con.keepAlive = request.keepAlive;
 
 	request.printRequest();
 	//Response response(Response::FILE, 0, "", "", "/var/www/example");
 	std::cerr << request.hostName << std::endl;
 	ServerConfig& config = con.getConfig(request.hostName);
 	Response response = Response::handleRequest(config, request);
-	//response.print();
 
-	//TODO if (connection == close)
-	//	close(fd);
-
-	const std::string http_response = response.toHttpResponse();
+	const std::string http_response = response.toHttpResponse(con.keepAlive);
 	// Отправка ответа клиенту
 	send(con.poll.fd, http_response.c_str(), http_response.size(), MSG_DONTWAIT | MSG_NOSIGNAL);
-	socketManager.closeConnection(con);
+	
+	//dodelat
+	con.keepAlive = false; // vse zapisali
+	
+	if (!con.keepAlive)
+		socketManager.closeConnection(con);
 }
 
 void Server::execWrite(Connection con)

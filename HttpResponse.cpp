@@ -374,14 +374,14 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 }
 
 // Метод для формирования HTTP-ответа
-const std::string Response::toHttpResponse() const {
+const std::string Response::toHttpResponse(bool keepAlive) const {
     std::ostringstream response;
 
     if (type == FILE && code == 204) { // DELETE запрос успешно выполнен
         std::cerr << "DELETE!   filePath: " << filePath << std::endl;
         response << "HTTP/1.1 204 No Content\r\n";
         response << "Content-Length: 0\r\n";
-        response << "Connection: close\r\n";
+        response << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n";
         response << "\r\n";
 
         std::string responseStr = response.str();
@@ -448,7 +448,7 @@ const std::string Response::toHttpResponse() const {
             file.close();
         }
     }
-    response << "Connection: close\r\n"; // Закрываем соединение после ответа
+    response << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"; // Закрываем соединение после ответа
     response << "\r\n"; // Пустая строка между заголовками и телом
 
     // Добавляем тело ответа
@@ -509,7 +509,6 @@ const std::string Response::toHttpResponse() const {
     }
 
     std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
-    std::cout << response.str()<< std::endl;;
     std::cout << response.str().substr(0, 500) << std::endl;
     std::cout << "----------------------------------------------------------" << std::endl;
     return response.str();

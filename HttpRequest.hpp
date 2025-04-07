@@ -35,6 +35,7 @@ public:
     std::string hostName;
     std::string boundary;
     size_t contentLength;
+    bool keepAlive;
 };
 
 #endif // HTTPREQUEST_HPP

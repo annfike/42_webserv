@@ -25,7 +25,7 @@ struct pollfd getPollFd(int fd)
 {
 	struct pollfd pfd;
 	pfd.fd = fd;
-	pfd.events = POLLIN | POLLOUT;
+	pfd.events = POLLIN; // | POLLOUT;
 	return pfd;
 }
 

@@ -128,6 +128,12 @@ chunk 2\r\n\
             hostName = host.substr(0, pos);
         }
     }
+
+    it = headers.find("Connection");
+    keepAlive = false;
+    if (it != headers.end() && it->second == "keep-alive") {        
+        keepAlive = true;
+    }
 }
 
 void HttpRequestParser::printRequest() const {
@@ -135,6 +141,7 @@ void HttpRequestParser::printRequest() const {
     std::cout << "Method: " << method << std::endl;
     std::cout << "URL: " << url << std::endl;
     std::cout << "Host: " << hostName << std::endl;
+    std::cout << "KeepAlive: " << keepAlive << std::endl;
     std::cout << "HTTP Version: " << httpVersion << std::endl;
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
         std::cout << it->first << ": " << it->second << std::endl;
