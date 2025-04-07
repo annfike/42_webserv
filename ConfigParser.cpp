@@ -193,8 +193,10 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                     size_t start = line.find_first_of(" \t");
                     size_t end = line.find(";");
                     if (start != std::string::npos && end != std::string::npos) {
-                        current_location.max_body = line.substr(start, end - start);
-                        trim(current_location.max_body);
+                        std::string str = line.substr(start, end - start);
+                        trim(str);
+                        char* end;
+                        current_location.max_body = std::strtoul(str.c_str(), &end, 10);
                         //std::cout << "Parsed max_body: " << current_location.max_body << std::endl;  // Debug
                     }
                 }

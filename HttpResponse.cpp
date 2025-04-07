@@ -88,7 +88,9 @@ bool isMethodAllowed(const ServerConfig::Location& location, const std::string& 
     return false;
 }
 
-bool isBodySizeValid(const ServerConfig& config, size_t size) {
+bool isBodySizeValid(const ServerConfig& config, ServerConfig::Location& location, size_t size) {
+    if (location.max_body > 0)
+        return size <= location.max_body;    
     return size <= config.client_max_body_size;
 }
 
@@ -115,11 +117,11 @@ std::string findLocalPath(const ServerConfig::Location& location, std::string& u
     return "";
 }
 
-bool fileExists(const std::string& path) {
+/*bool fileExists(const std::string& path) {
     // проверка существования файла // for what? we check it in findLocalPath
     (void)path;
     return false;
-}
+}*/
 
 bool isFolder(const std::string& path) {
     struct stat info;
@@ -261,11 +263,12 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         return getErrorResponse(config, 404, "Not Found");
     }
 
-    if (!isMethodAllowed(location, request.getMethod())) 
+    if (!isMethodAllowed(location, request.getMethod()))
         return getErrorResponse(config, 405, "Method Not Allowed");
 
-    if (!isBodySizeValid(config, request.getBody().size())) 
-        return getErrorResponse(config, 413, "Payload Too Large");
+    if ((request.getMethod() != "POST" || CgiHandler().isCGIExtension(url)) && 
+                        !isBodySizeValid(config, location, request.getBody().size()))
+       return getErrorResponse(config, 413, "Payload Too Large");
 
     std::string redirectPath = findRedirectPath(location);
     if (!redirectPath.empty()) {
@@ -295,7 +298,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 	std::string localPath = findLocalPath(location, urlLocal);
     // std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
     if (localPath.empty())
-        return getErrorResponse(config, 404, "Path Not Found1");
+        return getErrorResponse(config, 404, "Path Not Found!");
 
     if (request.getMethod() == "DELETE") 
     {
@@ -320,9 +323,12 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
         std::string filename;
         std::vector<char> fileData;
-        parseMultipartFormData(bodys, request.boundary, filename, fileData, request.contentLength);
-        filename = folder.substr(1) + '/' + filename;
+        parseMultipartFormData(bodys, request.boundary, filename, fileData, request.contentLength);        
+
+        if (!isBodySizeValid(config, location, fileData.size()))
+            return getErrorResponse(config, 413, "Payload Too Large");
         
+        filename = folder.substr(1) + '/' + filename;
         std::cout << "Saving to file: " << filename << "\n";
 
         // Сохраняем тело запроса в файл
@@ -406,7 +412,7 @@ const std::string Response::toHttpResponse() const {
     // Добавляем статусную строку
     switch (type) {
         case ERROR:
-            response << "HTTP/1.1 " << code << " Error\r\n";
+            response << "HTTP/1.1 " << code << " " << (message.empty() ? "Error" :  message) << "\r\n";
             break;
         case REDIRECT:
             response << "HTTP/1.1 " << code << " Moved Temporarily\r\n";

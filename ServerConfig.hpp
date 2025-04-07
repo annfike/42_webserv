@@ -19,13 +19,13 @@ public:
         std::string root;
         std::string exec;
         std::string upload_store;
-        std::string max_body;
+        size_t max_body;
         std::string redirect;
         std::string cgiPath;
         std::vector<std::string> cgi_extension;
         bool autoindex;
 
-        Location() : autoindex(true) {}
+        Location() : max_body(0), autoindex(true) {}
 
         void print() const;
     };
