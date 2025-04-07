@@ -1,4 +1,4 @@
-NAME = webserver
+NAME = webserv
 
 CC = c++ #-g
 

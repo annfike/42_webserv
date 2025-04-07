@@ -279,6 +279,18 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
 
+    std::cerr << "urlLocal in root==: " << urlLocal << std::endl;
+    std::cerr << "url in root==: " << url << std::endl;
+    if (request.getMethod() == "POST" && request.boundary.empty())
+    {
+        std::cerr << "url in POST: " << url << std::endl;
+        if (CgiHandler().isCGIExtension(url)) {
+            Logger::logInfo("isCGIExtension() is running...");
+            location.cgiPath = url.substr(1);
+            return CgiHandler().execPost(location, request);
+        }
+    }
+
     removeQuery(urlLocal);
 	std::string localPath = findLocalPath(location, urlLocal);
     // std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
@@ -348,7 +360,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
     }
 
     if (CgiHandler().isCGIExtension(localPath)) {
-        // Logger::logInfo("isCGIExtension() is running...");
+        Logger::logInfo("isCGIExtension() is running...");
         location.cgiPath = localPath;
         return CgiHandler().exec(location, request);
     }
@@ -492,7 +504,7 @@ const std::string Response::toHttpResponse() const {
 
     std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
     std::cout << response.str()<< std::endl;;
-    //std::cout << response.str().substr(0, 500) << std::endl;
+    std::cout << response.str().substr(0, 500) << std::endl;
     std::cout << "----------------------------------------------------------" << std::endl;
     return response.str();
 }
