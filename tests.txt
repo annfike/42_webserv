@@ -39,3 +39,6 @@ for i in {1..1000}; do echo -e "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection:
 CGI
 curl -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "greeting=sdjflkdsjkflkdlsjaf" http://127.0.0.1:8006/cgi-bin/greet.py
 curl -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=dsf" http://127.0.0.1:8006/cgi-bin/hello.py
+
+upload file test_upload.txt
+curl -X POST -F "file=@/home/sshevche/Desktop/webserver-draft/test_upload.txt" http://127.0.0.1:8001/bbb/index.html
