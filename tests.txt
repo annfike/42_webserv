@@ -1,0 +1,39 @@
+1. Использование curl для нагрузки на сервер
+for i in {1..1000}; do curl -s http://yourserver.com > /dev/null & done
+Здесь:
+    Цикл выполняет 1000 параллельных запросов.
+    curl -s http://yourserver.com — делает запрос на указанный сервер.
+    > /dev/null — игнорирует вывод (только тестируется нагрузка на сервер).
+    & — позволяет выполнять запросы в фоновом режиме, что делает их параллельными.
+
+2. Использование nc (netcat) для нагрузочного тестирования
+echo -e "GET / HTTP/1.1\r\nHost: yourserver.com\r\nConnection: close\r\n\r\n" | nc yourserver.com 80
+    Это отправляет HTTP-запрос на сервер на порт 80.
+    GET / HTTP/1.1 — это стандартный HTTP-запрос для получения главной страницы.
+    Host: yourserver.com — заголовок Host, который указывает на хост.
+    Connection: close — закрывает соединение после получения ответа.
+
+3. Использование telnet для тестирования
+telnet yourserver.com 80
+Затем в интерактивной сессии отправляем HTTP-запрос:
+GET / HTTP/1.1
+Host: yourserver.com
+Connection: close
+
+Если вы хотите автоматизировать эти запросы, используйте цикл:
+for i in {1..1000}; do echo -e "GET / HTTP/1.1\r\nHost: yourserver.com\r\nConnection: close\r\n\r\n" | telnet yourserver.com 80 & done
+
+
+COMMANDS:
+
+for i in {1..1000}; do curl -s  http://127.0.0.1:8082 > /dev/null & done
+
+echo -e "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" | nc 127.0.0.1 8001
+
+for i in {1..1000}; do echo -e "GET / HTTP/1.1\r\nHost: 127.0.0.1:8082\r\nConnection: close\r\n\r\n" | nc 127.0.0.1 8082 & done
+
+telnet 127.0.0.1 8001
+
+for i in {1..1000}; do echo -e "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" | telnet 127.0.0.1 8001 & done
+
+
