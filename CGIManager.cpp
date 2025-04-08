@@ -203,7 +203,7 @@ void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_
         close(cgi_output_pipe[0]);
         close(cgi_output_pipe[1]);
 
-        std::cerr << "Executing CGI script: " << this->cgi_args[0] << std::endl;
+        /* std::cerr << "Executing CGI script: " << this->cgi_args[0] << std::endl;
 
         std::cerr << "Environment: " << std::endl;
         for (int i = 0; this->cgi_envs[i] != NULL; ++i) {
@@ -214,7 +214,7 @@ void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_
         for (int i = 0; this->cgi_args[i] != NULL; ++i) {
             std::cerr << this->cgi_args[i] << std::endl;
         }
-
+ */
         this->status_exit = execve(this->cgi_args[0], (char * const *)this->cgi_args, this->cgi_envs);
         perror("execve failed");
         exit(this->status_exit);

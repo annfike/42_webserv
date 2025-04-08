@@ -47,7 +47,7 @@ const ServerConfig::Location getLocation(const ServerConfig& config, const std::
         // Ищем путь в locations
         for (std::map<std::string, ServerConfig::Location>::const_iterator it = config.locations.begin();
             it != config.locations.end(); ++it) {
-            std::cerr << "location: " << it->first << "+++";
+            // std::cerr << "location: " << it->first << "+++";
             if (it->first == url_to_test) {
                 *urlLocal = url.substr(it->first.length());
                 // Возвращаем индекс (позицию) найденного Location
@@ -89,6 +89,9 @@ bool isMethodAllowed(const ServerConfig::Location& location, const std::string& 
 }
 
 bool isBodySizeValid(const ServerConfig& config, ServerConfig::Location& location, size_t size) {
+    std::cerr << "location.max_body " << location.max_body << std::endl;
+    std::cerr << "size " << size << std::endl;
+    std::cerr << "config.client_max_body_size " << config.client_max_body_size << std::endl;
     if (location.max_body > 0)
         return size <= location.max_body;    
     return size <= config.client_max_body_size;
@@ -282,13 +285,11 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
 
-    std::cerr << "urlLocal in root==: " << urlLocal << std::endl;
-    std::cerr << "url in root==: " << url << std::endl;
-    if (request.getMethod() == "POST" && request.boundary.empty())
+    std::cerr << "request.getBody() " << request.getBody().data() << std::endl;
+    if (request.getMethod() == "POST" && request.boundary.empty() && isBodySizeValid(config, location, request.getBody().size()))
     {
-        std::cerr << "url in POST: " << url << std::endl;
         if (CgiHandler().isCGIExtension(url)) {
-            Logger::logInfo("isCGIExtension() is running...");
+            Logger::logInfo("POST isCGIExtension() is running...");
             location.cgiPath = url.substr(1);
             return CgiHandler().execPost(location, request);
         }
