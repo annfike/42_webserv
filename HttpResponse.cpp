@@ -269,6 +269,10 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
     if (!isMethodAllowed(location, request.getMethod()))
         return getErrorResponse(config, 405, "Method Not Allowed");
 
+    /* ???
+    if ((request.getMethod() == "POST" && request.getBody().size()) == 0)
+       return getErrorResponse(config, 400, "Bad Request");*/
+
     if ((request.getMethod() != "POST" || CgiHandler().isCGIExtension(url)) && 
                         !isBodySizeValid(config, location, request.getBody().size()))
        return getErrorResponse(config, 413, "Payload Too Large");

@@ -26,6 +26,8 @@ for i in {1..1000}; do echo -e "GET / HTTP/1.1\r\nHost: yourserver.com\r\nConnec
 
 COMMANDS:
 
+curl -X DELETE http://localhost:8001/bbb/1.txt
+
 for i in {1..1000}; do curl -s  http://127.0.0.1:8082 > /dev/null & done
 
 echo -e "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" | nc 127.0.0.1 8001
