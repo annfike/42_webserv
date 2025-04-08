@@ -80,7 +80,7 @@ void Server::execRead(Connection con)
 	con.keepAlive = request.keepAlive;
 
 	request.printRequest();
-	//Response response(Response::FILE, 0, "", "", "/var/www/example");
+	
 	std::cerr << request.hostName << std::endl;
 	ServerConfig& config = con.getConfig(request.hostName);
 	Response response = Response::handleRequest(config, request);

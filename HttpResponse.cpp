@@ -289,7 +289,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
 
-    std::cerr << "request.getBody() " << request.getBody().data() << std::endl;
+    //std::cerr << "request.getBody() " << request.getBody().data() << std::endl;
     if (request.getMethod() == "POST" && request.boundary.empty() && isBodySizeValid(config, location, request.getBody().size()))
     {
         if (CgiHandler().isCGIExtension(url)) {
@@ -438,10 +438,12 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
 
     // Добавляем заголовки     
     //response << "Content-Type: text/html\r\n"; // По умолчанию тип содержимого — HTML  
+    std::string redirectBody;
     response << "Content-Type: " << contentType << "\r\n";  
     if (type == REDIRECT) {
         response << "Location: " << destination << "\r\n"; // Заголовок для редиректа
-        response << "Content-Length: 0\r\n";
+        std::string redirectBody = "<html><body><h1>Redirecting...</h1><p>You are being redirected to <a href=\"" + destination + "\">" + destination + "</a>.</p></body></html>";
+        response << "Content-Length: " << redirectBody.size() << "\r\n";
     }
     if (type == FILE)
     {
@@ -463,7 +465,7 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
             response << "<html><body><h1>Error " << code << "</h1><p>" << message << "</p></body></html>";
             break;
         case REDIRECT:
-            response << "<html><body><h1>Redirecting...</h1><p>You are being redirected to <a href=\"" << destination << "\">" << destination << "</a>.</p></body></html>";
+            response << redirectBody;
             break;
         case FOLDER_LIST:
             response << message; // message уже содержит HTML-список папок
