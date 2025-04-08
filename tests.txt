@@ -36,4 +36,6 @@ telnet 127.0.0.1 8001
 
 for i in {1..1000}; do echo -e "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" | telnet 127.0.0.1 8001 & done
 
-
+CGI
+curl -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "greeting=sdjflkdsjkflkdlsjaf" http://127.0.0.1:8006/cgi-bin/greet.py
+curl -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=dsf" http://127.0.0.1:8006/cgi-bin/hello.py

@@ -337,7 +337,7 @@ Response CgiHandler::execPost(const ServerConfig::Location& location, HttpReques
     prepareCgiExecutionEnv(request, location);
 
     if (cgi_args[0] == NULL) {
-        return Response(Response::ERROR, 1, "CGI Execution Error", "", location.cgiPath, "");
+        return Response(Response::ERROR, 500, "CGI Execution Error 1", "", location.cgiPath, "");
     }
 
     // Получаем тело запроса как std::vector<char>
@@ -360,7 +360,7 @@ Response CgiHandler::execPost(const ServerConfig::Location& location, HttpReques
         return Response(Response::CGI, 200, "CGI Execution", "", location.cgiPath, cgi_output);
     } else {
         std::cerr << "error_code: " << error_code << std::endl;
-        return Response(Response::ERROR, error_code, "CGI Execution Error", "", location.cgiPath, "");
+        return Response(Response::ERROR, 500, "CGI Execution Error 2", "", location.cgiPath, "");
     }
 }
 
@@ -370,7 +370,7 @@ Response CgiHandler::exec(const ServerConfig::Location& location, HttpRequestPar
     prepareCgiExecutionEnv(request, location);
 
     if (cgi_args[0] == NULL) {
-        return Response(Response::ERROR, 1, "CGI Execution Error", "", location.cgiPath, "");
+        return Response(Response::ERROR, 500, "CGI Execution Error", "", location.cgiPath, "");
     }
 
     short error_code = 0;
