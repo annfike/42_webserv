@@ -252,11 +252,6 @@ void parseMultipartFormData(std::istream &request, const std::string &boundary, 
 }
 
 Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
-    std::map<std::string, std::string> headers = request.getHeaders();
-    for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it) {
-        printf("  %s: %s\n", it->first.c_str(), it->second.c_str());
-    }
-
     std::string urlLocal;
     std::string url = request.getUrl();
     ServerConfig::Location location = getLocation(config, url, &urlLocal);
@@ -315,10 +310,6 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     if (request.getMethod() == "POST")
     {
-        std::cout << "request.boundary: " << request.boundary << std::endl;
-        if (request.boundary.empty())
-            return getErrorResponse(config, 500, "Not supported!!!");
-
         std::string folder = location.upload_store;
         if (folder.empty())
             folder = location.root;
@@ -328,7 +319,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
         std::string filename;
         std::vector<char> fileData;
-        parseMultipartFormData(bodys, request.boundary, filename, fileData, request.contentLength);        
+        parseMultipartFormData(bodys, request.boundary, filename, fileData, request.contentLength);
 
         if (!isBodySizeValid(config, location, fileData.size()))
             return getErrorResponse(config, 413, "Payload Too Large");
