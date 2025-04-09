@@ -2,11 +2,13 @@
 
 static SocketManager* sm;
 
+int exit_requested = 0;
+
 void handleSignal(int)
 {
 	if (sm)
 		sm->closeSockets();
-	exit(1);
+	exit_requested = 1;
 }
 
 Server::Server(const std::string &config) 
@@ -139,7 +141,7 @@ void Server::loop()
 	//socketManager.bindSocket("0.0.0.0", 8080);
 	std::cout << std::endl;
 
-	while (true)
+	while (!exit_requested)
 	{
 		// Ожидаем активности на одном из сокетов
 		std::vector<Connection*> cons = socketManager.getActiveConnections();

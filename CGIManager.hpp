@@ -23,7 +23,7 @@ class CgiHandler {
   private:
     std::map<std::string, std::string> cgi_env_variables;
 
-    char**                             cgi_envs;
+    const char *                       cgi_envs[30];
     const char *                       cgi_args[3];
     int                                status_exit;
     std::string                        cgi_path;

@@ -102,12 +102,11 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, const ServerCon
 
     // Конвертируем std::map в массив строк в формате ключ=значение, который требует execve().
     // Создаем массив аргументов для CGI-программы
-    this->cgi_envs = (char **)calloc(sizeof(char *), this->cgi_env_variables.size() + 1);
 	std::map<std::string, std::string>::const_iterator it = this->cgi_env_variables.begin();
 	for (int i = 0; it != this->cgi_env_variables.end(); it++, i++)
 	{
 		std::string tmp = it->first + "=" + it->second;
-		this->cgi_envs[i] = strdup(tmp.c_str());
+		this->cgi_envs[i] = tmp.c_str();
 	}
 	this->cgi_args[0] = "/usr/bin/python3";
 	this->cgi_args[1] = (char *)cgi_executable_path.c_str();
@@ -159,12 +158,11 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, const Server
     // }
 
     // Создаем массив переменных окружения для CGI-процесс
-    this->cgi_envs = (char **)calloc(sizeof(char *), this->cgi_env_variables.size() + 1);
 	std::map<std::string, std::string>::const_iterator it = this->cgi_env_variables.begin();
 	for (int i = 0; it != this->cgi_env_variables.end(); it++, i++)
 	{
 		std::string tmp = it->first + "=" + it->second;
-		this->cgi_envs[i] = strdup(tmp.c_str());
+		this->cgi_envs[i] = tmp.c_str();
 	}
 
 	this->cgi_args[0] = "/usr/bin/python3";
@@ -215,7 +213,7 @@ void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_
             std::cerr << this->cgi_args[i] << std::endl;
         }
  */
-        this->status_exit = execve(this->cgi_args[0], (char * const *)this->cgi_args, this->cgi_envs);
+        this->status_exit = execve(this->cgi_args[0], (char * const *)this->cgi_args, (char * const *)this->cgi_envs);
         perror("execve failed");
         exit(this->status_exit);
     }
@@ -279,7 +277,7 @@ void CgiHandler::executeCgiProcess(short& error_code)
         close(cgi_output_pipe[0]);
         close(cgi_output_pipe[1]);
 
-        this->status_exit = execve(this->cgi_args[0], (char * const *)this->cgi_args, this->cgi_envs);
+        this->status_exit = execve(this->cgi_args[0], (char * const *)this->cgi_args, (char * const *)this->cgi_envs);
 
         perror("execve failed");
         exit(this->status_exit);
