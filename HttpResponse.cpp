@@ -389,10 +389,7 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
         response << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n";
         response << "\r\n";
 
-        std::string responseStr = response.str();
-        char* httpResponse = new char[responseStr.size() + 1];
-        std::strcpy(httpResponse, responseStr.c_str());
-        return httpResponse;
+        return response.str();;
 
         //проверка curl -X DELETE http://localhost:8001/bbb/1.txt
     }

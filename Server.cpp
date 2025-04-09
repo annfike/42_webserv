@@ -1,9 +1,20 @@
 #include "Server.hpp"
 
+static SocketManager* sm;
+
+void handleSignal(int)
+{
+	if (sm)
+		sm->closeSockets();
+	exit(1);
+}
 
 Server::Server(const std::string &config) 
 {
 	parseConfig(config);
+	sm = &socketManager;
+	signal(SIGINT, handleSignal);
+	signal(SIGQUIT, handleSignal);
 }
 
 Server::~Server()
@@ -40,7 +51,7 @@ void Server::parseConfig(const std::string &config)
 	}
 }
 
-void Server::execRead(Connection con)
+void Server::execRead(Connection& con)
 {
 	std::cout << "----------------- READING FROM FD=" << con.poll.fd << " -----------------" <<std::endl;
 	
@@ -96,20 +107,20 @@ void Server::execRead(Connection con)
 		socketManager.closeConnection(con);
 }
 
-void Server::execWrite(Connection con)
+void Server::execWrite(Connection& con)
 {
 	socketManager.closeConnection(con);
 }
 
-void print(std::vector<Connection> cons)
+void print(std::vector<Connection*> cons)
 {
 	std::cout << std::endl;
 	std::cout << "Fds statuses:" << std::endl;
 	for (size_t i = 0; i < cons.size(); i++)
 	{
-		std::cout << "	FD=" << cons[i].poll.fd;
-		std::cout << " E=" << cons[i].poll.events;
-		std::cout << " R=" << cons[i].poll.revents << std::endl;
+		std::cout << "	FD=" << cons[i]->poll.fd;
+		std::cout << " E=" << cons[i]->poll.events;
+		std::cout << " R=" << cons[i]->poll.revents << std::endl;
 	}
 	std::cout << std::endl;
 }
@@ -131,23 +142,23 @@ void Server::loop()
 	while (true)
 	{
 		// Ожидаем активности на одном из сокетов
-		std::vector<Connection> cons = socketManager.getActiveConnections();
+		std::vector<Connection*> cons = socketManager.getActiveConnections();
 		if (cons.empty())
 			continue;
 
 		print(cons);
 		for (size_t i = 0; i < cons.size(); i++)
 		{
-			if (cons[i].isSocket)
+			if (cons[i]->isSocket)
 			{
-				socketManager.acceptConnection(cons[i]);
+				socketManager.acceptConnection(*cons[i]);
 				continue;
 			}
 
-			if (cons[i].poll.revents & POLLIN)
-				execRead(cons[i]);
-			if (cons[i].poll.revents & POLLOUT)
-				execWrite(cons[i]);
+			if (cons[i]->poll.revents & POLLIN)
+				execRead(*cons[i]);
+			if (cons[i]->poll.revents & POLLOUT)
+				execWrite(*cons[i]);
 		}
 	}
 }

@@ -29,7 +29,7 @@ struct pollfd getPollFd(int fd)
 	return pfd;
 }
 
-void SocketManager::bindSocket(ServerConfig config)
+void SocketManager::bindSocket(ServerConfig& config)
 {
 	std::string ip = config.listen_IP;
 	int port = std::atoi(config.listen.c_str());
@@ -102,7 +102,7 @@ void SocketManager::bindSocket(ServerConfig config)
 	connections.push_back(con);
 }
 
-std::vector<Connection> SocketManager::getActiveConnections()
+std::vector<Connection*> SocketManager::getActiveConnections()
 {
 	std::vector<struct pollfd> fds;
 	for (size_t i = 0; i < connections.size(); i++)
@@ -111,16 +111,15 @@ std::vector<Connection> SocketManager::getActiveConnections()
 	}
 
 	if (fds.empty())
-		return std::vector<Connection>();
+		return std::vector<Connection*>();
 
 	int activity = poll(fds.data(), fds.size(), -1);
 	if (activity <= 0)
 	{
 		std::cerr << std::strerror(errno) << std::endl;
-		return std::vector<Connection>();
+		return std::vector<Connection*>();
 	}
-
-	std::vector<Connection> cons;
+	std::vector<Connection*> cons;
 	for (size_t i = 0; i < fds.size(); i++)
 	{
 		if (!fds[i].revents)
@@ -128,13 +127,13 @@ std::vector<Connection> SocketManager::getActiveConnections()
 		
 		Connection* con = getConnection(fds[i].fd);
 		con->poll.revents = fds[i].revents;
-		cons.push_back(*con);
+		cons.push_back(con);
 	}
 
 	return cons;
 }
 
-void SocketManager::acceptConnection(Connection socket)
+void SocketManager::acceptConnection(Connection& socket)
 {
 	if (!socket.isSocket)
 	{
@@ -171,6 +170,7 @@ void SocketManager::acceptConnection(Connection socket)
 
 void SocketManager::closeSockets()
 {
+	std::cerr << "Closing sockets ...\n";
 	for (size_t i = 0; i < connections.size(); i++)
 	{
 		close(connections[i].poll.fd);
@@ -188,7 +188,7 @@ Connection* SocketManager::getConnection(int fd)
 	return NULL;
 }
 
-void SocketManager::closeConnection(Connection con)
+void SocketManager::closeConnection(Connection& con)
 {
 	for (size_t j = 0; j < connections.size(); j++) 
 	{

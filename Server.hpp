@@ -27,11 +27,11 @@ public:
 
 private:
 	std::vector<ServerConfig> servers;
-	SocketManager socketManager;
+	SocketManager socketManager;	
 
 	void parseConfig(const std::string &config);
-	void execRead(Connection con);
-	void execWrite(Connection con);
+	void execRead(Connection& con);
+	void execWrite(Connection& con);	
 };
 
 #endif // SERVER_HPP
