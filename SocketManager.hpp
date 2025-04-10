@@ -31,7 +31,7 @@ class SocketManager {
 		Connection* getConnection(int fd);
 		void closeSockets();
 		void closeConnection(Connection& con);
-		std::vector<Connection> connections;
+		std::vector<Connection*> connections;
 };
 
 #endif

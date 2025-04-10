@@ -14,6 +14,7 @@
 #include <fstream>
 #include <filesystem>
 #include "CGIManager.hpp"
+#include "Server.hpp"
 #include <cmath>
 
 class Response {
@@ -38,6 +39,7 @@ public:
     void              print() const;
     static Response handleRequest(const ServerConfig& config, HttpRequestParser request);
     const std::string toHttpResponse(bool keepAlive) const;
+    std::string& getFilePath();
 
 private:
     Type type;
@@ -49,4 +51,4 @@ private:
     std::string cgi_output;
 };
 
-#endif // HTTPRESPONSE_HPP
+#endif 

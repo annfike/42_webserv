@@ -59,7 +59,7 @@ void Server::execRead(Connection& con)
 	
 	// Чтение HTTP-запроса от клиента
 	std::vector<char> accumulatedData;
-	char buffer[4096];
+	char buffer[BUFFER_SIZE];
 	ssize_t bytes_read;
 
 	while ((bytes_read = read(con.poll.fd, buffer, sizeof(buffer) - 1)) > 0)
@@ -97,13 +97,15 @@ void Server::execRead(Connection& con)
 	std::cerr << request.hostName << std::endl;
 	ServerConfig& config = con.getConfig(request.hostName);
 	Response response = Response::handleRequest(config, request);
-
+	
 	const std::string http_response = response.toHttpResponse(con.keepAlive);
+	con.responseHeader = http_response;
+	
 	// Отправка ответа клиенту
-	send(con.poll.fd, http_response.c_str(), http_response.size(), MSG_DONTWAIT | MSG_NOSIGNAL);
+	//send(con.poll.fd, http_response.c_str(), http_response.size(), MSG_DONTWAIT | MSG_NOSIGNAL);
 	
 	//dodelat
-	con.keepAlive = false; // vse zapisali
+	//con.keepAlive = false; // vse zapisali
 	
 	if (!con.keepAlive)
 		socketManager.closeConnection(con);
@@ -111,10 +113,25 @@ void Server::execRead(Connection& con)
 
 void Server::execWrite(Connection& con)
 {
-	socketManager.closeConnection(con);
+	if (!con.headerSent) {
+		send(con.poll.fd, con.responseHeader.c_str(), con.responseHeader.size(), MSG_DONTWAIT | MSG_NOSIGNAL);
+		con.headerSent = true;
+	}
+
+	if (!con.file)
+		return;
+
+	char buf[BUFFER_SIZE];
+	if (con.file->read(buf, sizeof(buf)) || con.file->gcount() > 0) {
+		send(con.poll.fd, buf, con.file->gcount(), MSG_DONTWAIT | MSG_NOSIGNAL);
+	}
+	else {
+		con.file->close();
+		socketManager.closeConnection(con);
+	}
 }
 
-void print(std::vector<Connection*> cons)
+void print(std::vector<Connection*>& cons)
 {
 	std::cout << std::endl;
 	std::cout << "Fds statuses:" << std::endl;

@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <signal.h>
 
+const int BUFFER_SIZE = 4096;
+
 class Server {
 public:
 	Server();

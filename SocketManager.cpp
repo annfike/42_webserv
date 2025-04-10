@@ -35,9 +35,9 @@ void SocketManager::bindSocket(ServerConfig& config)
 	int port = std::atoi(config.listen.c_str());
 	for (size_t i = 0; i < connections.size(); i++)
 	{
-		if (connections[i].ip == ip && connections[i].port == port)
+		if (connections[i]->ip == ip && connections[i]->port == port)
 		{
-			connections[i].configs.push_back(config);
+			connections[i]->configs.push_back(config);
 			return;
 		}
 	}
@@ -93,13 +93,14 @@ void SocketManager::bindSocket(ServerConfig& config)
 
 	std::cout << "	" << ip << ":" << port << " (" << socket_fd << ")" << std::endl;
 
-	Connection con;
-	con.ip = ip;
-	con.port = port;
-	con.poll = getPollFd(socket_fd);
-	con.isSocket = true;
-	con.configs.push_back(config);
+	Connection* con = new Connection();
+	con->ip = ip;
+	con->port = port;
+	con->poll = getPollFd(socket_fd);
+	con->isSocket = true;
+	con->configs.push_back(config);
 	connections.push_back(con);
+	
 }
 
 std::vector<Connection*> SocketManager::getActiveConnections()
@@ -107,7 +108,7 @@ std::vector<Connection*> SocketManager::getActiveConnections()
 	std::vector<struct pollfd> fds;
 	for (size_t i = 0; i < connections.size(); i++)
 	{
-		fds.push_back(connections[i].poll);
+		fds.push_back(connections[i]->poll);
 	}
 
 	if (fds.empty())
@@ -165,7 +166,7 @@ void SocketManager::acceptConnection(Connection& socket)
 	con.port = socket.port;
 	con.configs = socket.configs;
 	con.poll = getPollFd(client_fd);
-	connections.push_back(con);
+	connections.push_back(&con);
 }
 
 void SocketManager::closeSockets()
@@ -173,7 +174,7 @@ void SocketManager::closeSockets()
 	std::cerr << "Closing sockets ...\n";
 	for (size_t i = 0; i < connections.size(); i++)
 	{
-		close(connections[i].poll.fd);
+		close(connections[i]->poll.fd);
 	}
 	connections.clear();
 }
@@ -182,8 +183,8 @@ Connection* SocketManager::getConnection(int fd)
 {
 	for (size_t i = 0; i < connections.size(); i++)
 	{
-		if (connections[i].poll.fd == fd)
-			return &connections[i];
+		if (connections[i]->poll.fd == fd)
+			return connections[i];
 	}
 	return NULL;
 }
@@ -192,7 +193,7 @@ void SocketManager::closeConnection(Connection& con)
 {
 	for (size_t j = 0; j < connections.size(); j++) 
 	{
-		if (connections[j].poll.fd == con.poll.fd) 
+		if (connections[j]->poll.fd == con.poll.fd) 
 		{
 			//shutdown(con.poll.fd, SHUT_WR);
 			close(con.poll.fd);
