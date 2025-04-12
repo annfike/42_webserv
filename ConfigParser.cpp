@@ -39,6 +39,7 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
             inside_server_block = true;
             //std::cout<<"-----------------------HERE-----------------------------------" << std::endl;
             current_server = ServerConfig();  // Reset the current server configuration
+            current_server.client_max_body_size = -1;
             //std::cout << "Entered server block." << std::endl;  // Debug
             continue;
         }
@@ -108,7 +109,7 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                     std::string str = line.substr(start + 1, end - start - 1);
                     trim(str);
                     if(str.empty()) {
-                        str = "1024"; // какой макс????? в конфиге у нас два в сервере и локэйшене ??
+                        str = "-1"; // какой макс????? в конфиге у нас два в сервере и локэйшене ??
                     }
                     char* end;
                     current_server.client_max_body_size = std::strtoul(str.c_str(), &end, 10);

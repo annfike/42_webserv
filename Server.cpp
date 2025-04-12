@@ -57,7 +57,7 @@ void Server::execRead(Connection& con)
 	char buffer[BUFFER_SIZE];
 	ssize_t bytes_read;
 
-	while ((bytes_read = read(con.poll.fd, buffer, sizeof(buffer) - 1)) > 0)
+	while ((bytes_read = recv(con.poll.fd, buffer, sizeof(buffer) - 1, 0)) > 0)
     {
 		accumulatedData.insert(accumulatedData.end(), buffer, buffer + bytes_read); // Добавляем в накопленные данные
 	}
@@ -71,11 +71,11 @@ void Server::execRead(Connection& con)
 		return;
 	}
 
-	std::cout << "\n---> Request received: \n";
+	std::cerr << "\n---> Request received: \n";
     for (size_t i = 0; i < std::min(accumulatedData.size(), size_t(500)); i++) {
-        std::cout << accumulatedData[i];
+	    std::cerr << accumulatedData[i];
     }
-	std::cout << "\n---> End of Request\n\n";
+	std::cerr << "\n---> End of Request\n\n";
 
 	// Request & Response
 	HttpRequestParser request;
@@ -93,7 +93,7 @@ void Server::execRead(Connection& con)
 	ServerConfig& config = con.getConfig(request.hostName);
 	Response response = Response::handleRequest(config, request);
 
-	const std::string http_response = response.toHttpResponse(con.keepAlive);
+	const std::string http_response = response.toHttpResponse(con.keepAlive, request.getMethod() == "HEAD");
 	con.responseHeader = http_response;
 	con.transferred = 0;
 	con.poll.events = POLLOUT;

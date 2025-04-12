@@ -93,7 +93,7 @@ bool isBodySizeValid(const ServerConfig& config, ServerConfig::Location& locatio
     std::cerr << "size " << size << std::endl;
     std::cerr << "config.client_max_body_size " << config.client_max_body_size << std::endl;
     if (location.max_body > 0)
-        return size <= location.max_body;    
+        return size <= location.max_body;
     return size <= config.client_max_body_size;
 }
 
@@ -252,6 +252,16 @@ void parseMultipartFormData(std::istream &request, const std::string &boundary, 
 }
 
 Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
+    if (request.getMethod().empty() || request.getPath().empty() || request.httpVersion.empty() || request.httpVersion.find("HTTP") != 0 ||
+        (request.getMethod() != "GET" && request.getMethod() != "POST" && request.getMethod() != "DELETE" && request.getMethod() != "HEAD") || 
+        (request.getMethod() == "POST" && request.getBody().empty())) {
+        // некорректный запрос
+        std::cerr << request.getMethod() << "==" << request.getPath() << "==" << request.httpVersion 
+            << "==" << (request.getMethod() == "POST" && request.getBody().empty()) << std::endl;
+        //if (request.getMethod().empty())
+        return getErrorResponse(config, 400, "Bad Request");
+    }
+
     std::string urlLocal;
     std::string url = request.getUrl();
     ServerConfig::Location location = getLocation(config, url, &urlLocal);
@@ -261,7 +271,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         return getErrorResponse(config, 404, "Not Found");
     }
 
-    if (!isMethodAllowed(location, request.getMethod()))
+    if (request.getMethod() != "HEAD" && !isMethodAllowed(location, request.getMethod()))
         return getErrorResponse(config, 405, "Method Not Allowed");
 
     /* ???
@@ -348,12 +358,12 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         std::cout << "Folder: " << localPath << std::endl;
         std::string iFile;
         if (localPath.empty() || url[url.length() - 1] != '/')
-            return Response(Response::REDIRECT, 301, "", url + "/", "");
+            return Response(Response::REDIRECT, 302, "", url + "/", "");
         else if (!(iFile = getIndexFile(location, localPath)).empty()) {
             if (CgiHandler().isCGIExtension(localPath))
                 return Response(Response::FILE, 200, "CGI Execution", "", localPath + "/index.html");
             else
-                return Response(Response::REDIRECT, 301, "", url + iFile);
+                return Response(Response::REDIRECT, 302, "", url + iFile);
         } else if (location.autoindex) {
             std::cout << "Autoindex enabled" << std::endl;
             return generateFolderList(config, localPath);
@@ -370,7 +380,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 }
 
 // Метод для формирования HTTP-ответа
-const std::string Response::toHttpResponse(bool keepAlive) const {
+const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
     std::ostringstream response;
 
     if (type == FILE && code == 204) { // DELETE запрос успешно выполнен
@@ -408,7 +418,7 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
             response << "HTTP/1.1 " << code << " " << (message.empty() ? "Error" :  message) << "\r\n";
             break;
         case REDIRECT:
-            response << "HTTP/1.1 " << code << " Moved Temporarily\r\n";
+            response << "HTTP/1.1 " << code << " Found\r\n";
             break;
         case FOLDER_LIST:
             response << "HTTP/1.1 " << code << " OK\r\n";
@@ -430,9 +440,15 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
     response << "Content-Type: " << contentType << "\r\n";  
     if (type == REDIRECT) {
         response << "Location: " << destination << "\r\n"; // Заголовок для редиректа
-        std::string redirectBody = "<html><body><h1>Redirecting...</h1><p>You are being redirected to <a href=\"" + destination + "\">" + destination + "</a>.</p></body></html>";
+        if (!noBody)
+            redirectBody = "<html><body><h1>Redirecting...</h1><p>You are being redirected to <a href=\"" + destination + "\">" + destination + "</a>.</p></body></html>";
+        response << "Content-Length: " << (noBody ? 0 : redirectBody.size()) << "\r\n";
+    }
+    if (type == ERROR) {
+        std::ostringstream oss;
+        oss << code;
+        redirectBody = "<html><body><h1>Error " + oss.str() + "</h1><p>" + message + "</p></body></html>";
         response << "Content-Length: " << redirectBody.size() << "\r\n";
-        keepAlive = false;
     }
     if (type == FILE)
     {
@@ -451,7 +467,7 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
     // std::cout << "type: " << type << std::endl;
     switch (type) {
         case ERROR:
-            response << "<html><body><h1>Error " << code << "</h1><p>" << message << "</p></body></html>";
+            response << redirectBody;
             break;
         case REDIRECT:
             response << redirectBody;
@@ -504,8 +520,8 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
             break;
     }
 
-    std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
-    std::cout << response.str().substr(0, 500) << std::endl;
-    std::cout << "----------------------------------------------------------" << std::endl;
+    std::cerr << "\n-------------------------RESPONSE------------------------" << std::endl;
+    std::cerr << response.str().substr(0, 500) << std::endl;
+    std::cerr << "----------------------------------------------------------" << std::endl;
     return response.str();
 }

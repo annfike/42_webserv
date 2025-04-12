@@ -14,7 +14,6 @@ private:
     std::string method;
     std::string url;
     std::string path;
-    std::string httpVersion;
     std::map<std::string, std::string> headers;
     std::vector<char> body;    
     std::string query;
@@ -32,10 +31,12 @@ public:
     std::string& getQuery();
     std::string& getPath();
 
+    std::string httpVersion;
     std::string hostName;
     std::string boundary;
     size_t contentLength;
     bool keepAlive;
+
 };
 
-#endif // HTTPREQUEST_HPP
+#endif

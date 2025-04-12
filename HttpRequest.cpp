@@ -130,9 +130,9 @@ chunk 2\r\n\
     }
 
     it = headers.find("Connection");
-    keepAlive = false;
-    if (it != headers.end() && it->second == "keep-alive") {        
-        keepAlive = true;
+    keepAlive = true;
+    if (it != headers.end() && it->second == "close") {        
+        keepAlive = false;
     }
 }
 
@@ -140,7 +140,7 @@ void HttpRequestParser::printRequest() const {
     std::cout << "-------------------Request parsed --------------------------" << std::endl;
     std::cout << "Method: " << method << std::endl;
     std::cout << "URL: " << url << std::endl;
-    std::cout << "Host: " << hostName << std::endl;
+    std::cout << "HostName: " << hostName << std::endl;
     std::cout << "KeepAlive: " << keepAlive << std::endl;
     std::cout << "HTTP Version: " << httpVersion << std::endl;
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
