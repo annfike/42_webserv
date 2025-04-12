@@ -1,20 +1,20 @@
 #include "ServerConfig.hpp"
 
 void ServerConfig::Location::print() const {
-    std::cout << "  Path: " << path << std::endl;
+    std::cout << "	_Path: " << path;
     //std::cout << "  Methods: " << methods << std::endl;
-    std::cout << "  Methods: ";
+    std::cout << "	_Methods: ";
     for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); ++it) {
         std::cout << *it << " ";
     }
-    std::cout << std::endl;
-    std::cout << "  Index: " << index << std::endl;
-    std::cout << "  Root: " << root << std::endl;
-    std::cout << "  Exec: " << exec << std::endl;
-    std::cout << "  Upload Store: " << upload_store << std::endl;
-    std::cout << "  Autoindex: " << (autoindex ? "on" : "off") << std::endl;
-    std::cout << "  Max Body: " << max_body << std::endl;
-    std::cout << "  Redirect: " << redirect << std::endl;
+    
+    std::cout << "	_Index: " << index;
+    std::cout << "	_Root: " << root;
+    std::cout << "	_Exec: " << exec;
+    std::cout << "	_Upload_Store: " << upload_store;
+    std::cout << "	_Autoindex: " << (autoindex ? "on" : "off");
+    std::cout << "	_Max_Body: " << max_body;
+    std::cout << "	_Redirect: " << redirect << std::endl;
 }
 
 void ServerConfig::print() const {

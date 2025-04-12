@@ -178,6 +178,20 @@ void SocketManager::closeSockets()
 	connections.clear();
 }
 
+void SocketManager::print() {
+		//std::cout << std::endl;
+		std::cout << " Fds statuses: ";
+		for (size_t i = 0; i < connections.size(); i++)
+		{
+			//if (cons[i]->transferred != 0)
+				//continue;
+			std::cout << "	FD=" << connections[i].poll.fd;
+			std::cout << " E=" << connections[i].poll.events;
+			std::cout << " R=" << connections[i].poll.revents;
+		}
+		std::cout << std::endl;
+}
+
 Connection* SocketManager::getConnection(int fd)
 {
 	for (size_t i = 0; i < connections.size(); i++)

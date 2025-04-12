@@ -237,7 +237,7 @@ void parseMultipartFormData(std::istream &request, const std::string &boundary, 
 
     std::cerr << "\nbytesRead:" << bytesRead <<", length:" << length << "\n";
 
-    char buffer[4096];
+    char buffer[BUFFER_SIZE];
     while (!request.eof() && bytesRead < length) {
         request.read(buffer, sizeof(buffer));
         size_t count = request.gcount();
@@ -380,7 +380,7 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
         response << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n";
         response << "\r\n";
 
-        return response.str();;
+        return response.str();
 
         //проверка curl -X DELETE http://localhost:8001/bbb/1.txt
     }
@@ -432,6 +432,7 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
         response << "Location: " << destination << "\r\n"; // Заголовок для редиректа
         std::string redirectBody = "<html><body><h1>Redirecting...</h1><p>You are being redirected to <a href=\"" + destination + "\">" + destination + "</a>.</p></body></html>";
         response << "Content-Length: " << redirectBody.size() << "\r\n";
+        keepAlive = false;
     }
     if (type == FILE)
     {
@@ -469,8 +470,8 @@ const std::string Response::toHttpResponse(bool keepAlive) const {
                     std::cerr << "Error reading file " << filePath << std::endl;
                 else
                 {
-                    char buffer[4096];  // Буфер для чтения данных частями
-                    while (file.read(buffer, 4096))
+                    char buffer[BUFFER_SIZE];  // Буфер для чтения данных частями
+                    while (file.read(buffer, BUFFER_SIZE))
                     {
                         response.write(buffer, file.gcount());
                     }

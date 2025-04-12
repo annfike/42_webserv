@@ -15,12 +15,11 @@
 #include <stdlib.h>
 #include <signal.h>
 
+const std::size_t BUFFER_SIZE = 4096;
+
 class Server {
 public:
-	Server();
-	Server(const Server& s);
 	Server(const std::string &config);
-	~Server();
 	Server*& operator=(const Server& s);
 
 	void loop();
@@ -31,7 +30,8 @@ private:
 
 	void parseConfig(const std::string &config);
 	void execRead(Connection& con);
-	void execWrite(Connection& con);	
+	void execWrite(Connection& con);
+	void print(std::vector<Connection*>& cons);
 };
 
 #endif // SERVER_HPP

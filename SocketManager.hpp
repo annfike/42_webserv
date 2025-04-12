@@ -30,6 +30,7 @@ class SocketManager {
 		void acceptConnection(Connection& socket);
 		Connection* getConnection(int fd);
 		void closeSockets();
+		void print();
 		void closeConnection(Connection& con);
 		std::vector<Connection> connections;
 };

@@ -14,6 +14,7 @@
 #include <fstream>
 #include <filesystem>
 #include "CGIManager.hpp"
+#include "Server.hpp"
 #include <cmath>
 
 class Response {
@@ -49,4 +50,4 @@ private:
     std::string cgi_output;
 };
 
-#endif // HTTPRESPONSE_HPP
+#endif 
