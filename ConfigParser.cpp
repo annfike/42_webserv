@@ -73,7 +73,13 @@ bool ConfigParser::parseConfig(const std::string &filename, std::vector<ServerCo
                 size_t colon_pos = line.find(":", start);
                 if (start != std::string::npos && colon_pos != std::string::npos) {
                     std::string ip_address = line.substr(start, colon_pos - start);
-                    std::string port = line.substr(colon_pos + 1);
+                    size_t semicolon_pos = line.find(";", colon_pos);
+                    std::string port;
+                    if (semicolon_pos != std::string::npos) {
+                        port = line.substr(colon_pos + 1, semicolon_pos - colon_pos - 1); 
+                    } else {
+                        port = line.substr(colon_pos + 1); 
+                    }
                     trim(ip_address);
                     trim(port);
                     current_server.listen_IP = ip_address;

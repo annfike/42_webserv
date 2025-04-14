@@ -45,6 +45,8 @@ url -X POST -v http://127.0.0.1
 
 ./ubuntu_tester http://127.0.0.1:8001/bbb 
 
+valgrind --leak-check=full ./webserv
+
 
 COMMANDS:
 

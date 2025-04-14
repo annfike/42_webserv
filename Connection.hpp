@@ -10,7 +10,30 @@ class Connection
 	private:
 		
 	public:
-		Connection():transferred(0){}
+		Connection() : isSocket(false),
+			ip(""), port(0), headerSent(false),
+			keepAlive(false), responseHeader(""),
+			transferred(0) {}
+		Connection(const Connection& other)
+			: configs(other.configs), poll(other.poll), isSocket(other.isSocket),
+			  ip(other.ip), port(other.port), headerSent(other.headerSent),
+			  keepAlive(other.keepAlive), responseHeader(other.responseHeader),
+			  transferred(other.transferred) {}
+
+		Connection& operator=(const Connection& other) {
+			if (this != &other) {
+				configs = other.configs;
+				poll = other.poll;
+				isSocket = other.isSocket;
+				ip = other.ip;
+				port = other.port;
+				headerSent = other.headerSent;
+				keepAlive = other.keepAlive;
+				responseHeader = other.responseHeader;
+				transferred = other.transferred;
+			}
+			return *this;
+		}
 		std::vector<ServerConfig> configs;
 		struct pollfd poll;
 		bool isSocket;
@@ -21,5 +44,5 @@ class Connection
 		std::string responseHeader;
 		std::size_t transferred;
 
-		ServerConfig& getConfig(std::string serverName);
+		const ServerConfig&  getConfig(const std::string& serverName);
 };

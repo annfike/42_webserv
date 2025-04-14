@@ -1,6 +1,6 @@
 #include "Connection.hpp"
 
-ServerConfig& Connection::getConfig(std::string serverName)
+const ServerConfig& Connection::getConfig(const std::string& serverName)
 {
 	for (size_t i = 0; i < configs.size(); i++)
 	{

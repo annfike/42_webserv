@@ -40,7 +40,7 @@ void Response::print() const {
 }
 
 // Функция для поиска Location по URL
-const ServerConfig::Location getLocation(const ServerConfig& config, const std::string& url, std::string* urlLocal) {
+const ServerConfig::Location* getLocation(const ServerConfig& config, const std::string& url, std::string* urlLocal) {
     std::string url_to_test = url;
     // Поиск по полному пути или его частям
     while (!url_to_test.empty() && url_to_test != "/") {
@@ -51,7 +51,7 @@ const ServerConfig::Location getLocation(const ServerConfig& config, const std::
             if (it->first == url_to_test) {
                 *urlLocal = url.substr(it->first.length());
                 // Возвращаем индекс (позицию) найденного Location
-                return it->second;
+                return &it->second;
             }
         }
         // Укорачиваем путь
@@ -69,10 +69,10 @@ const ServerConfig::Location getLocation(const ServerConfig& config, const std::
         it != config.locations.end(); ++it) {
         if (it->first == "/") {
             *urlLocal = url;
-            return it->second;
+            return &it->second;
         }
     }
-    return ServerConfig::Location();
+    return NULL;
 }
 
 bool isMethodAllowed(const ServerConfig::Location& location, const std::string& method) {
@@ -88,12 +88,12 @@ bool isMethodAllowed(const ServerConfig::Location& location, const std::string& 
     return false;
 }
 
-bool isBodySizeValid(const ServerConfig& config, ServerConfig::Location& location, size_t size) {
-    std::cerr << "location.max_body " << location.max_body << std::endl;
+bool isBodySizeValid(const ServerConfig& config, const ServerConfig::Location* location, size_t size) {
+    std::cerr << "location.max_body " << location->max_body << std::endl;
     std::cerr << "size " << size << std::endl;
     std::cerr << "config.client_max_body_size " << config.client_max_body_size << std::endl;
-    if (location.max_body > 0)
-        return size <= location.max_body;
+    if (location->max_body > 0)
+        return size <= location->max_body;
     return size <= config.client_max_body_size;
 }
 
@@ -262,18 +262,17 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         return getErrorResponse(config, 400, "Bad Request");
     }
 
-    std::string urlLocal;
+    std::string urlLocal = "";
     std::string url = request.getUrl();
-    ServerConfig::Location location = getLocation(config, url, &urlLocal);
+    const ServerConfig::Location* location = getLocation(config, url, &urlLocal);
     //std::cerr << "location index: " << location_index << "+++";
-    if (location.path.empty() ) {
+    if (location == NULL) {
         std::cerr << "nooo getlocation" << std::endl;
         return getErrorResponse(config, 404, "Not Found");
     }
 
-    if (request.getMethod() != "HEAD" && !isMethodAllowed(location, request.getMethod()))
+    if (request.getMethod() != "HEAD" && !isMethodAllowed(*location, request.getMethod()))
         return getErrorResponse(config, 405, "Method Not Allowed");
-
     /* ???
     if ((request.getMethod() == "POST" && request.getBody().size()) == 0)
        return getErrorResponse(config, 400, "Bad Request");*/
@@ -282,7 +281,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
                         !isBodySizeValid(config, location, request.getBody().size()))
        return getErrorResponse(config, 413, "Payload Too Large");
 
-    std::string redirectPath = findRedirectPath(location);
+    std::string redirectPath = findRedirectPath(*location);
     if (!redirectPath.empty()) {
         int status_code;
         std::string url;
@@ -299,13 +298,13 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
     {
         if (CgiHandler().isCGIExtension(url)) {
             Logger::logInfo("POST isCGIExtension() is running...");
-            location.cgiPath = url.substr(1);
-            return CgiHandler().execPost(location, request);
+            //location->cgiPath = url.substr(1);
+            return CgiHandler().execPost(request, url.substr(1), location->root);
         }
     }
 
     removeQuery(urlLocal);
-	std::string localPath = findLocalPath(location, urlLocal);
+	std::string localPath = findLocalPath(*location, urlLocal);
     // std::cerr << "\nlocation index1: " << url << " +++ " << " +++ " << localPath << " +++ \n" ;
     if (localPath.empty())
         return getErrorResponse(config, 404, "Path Not Found!");
@@ -320,9 +319,9 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     if (request.getMethod() == "POST")
     {
-        std::string folder = location.upload_store;
+        std::string folder = location->upload_store;
         if (folder.empty())
-            folder = location.root;
+            folder = location->root;
 
         std::stringstream bodys;
         bodys.write(request.getBody().data(), request.getBody().size());
@@ -359,12 +358,12 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         std::string iFile;
         if (localPath.empty() || url[url.length() - 1] != '/')
             return Response(Response::REDIRECT, 302, "", url + "/", "");
-        else if (!(iFile = getIndexFile(location, localPath)).empty()) {
+        else if (!(iFile = getIndexFile(*location, localPath)).empty()) {
             if (CgiHandler().isCGIExtension(localPath))
                 return Response(Response::FILE, 200, "CGI Execution", "", localPath + "/index.html");
             else
                 return Response(Response::REDIRECT, 302, "", url + iFile);
-        } else if (location.autoindex) {
+        } else if (location->autoindex) {
             std::cout << "Autoindex enabled" << std::endl;
             return generateFolderList(config, localPath);
         } else
@@ -373,8 +372,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     if (CgiHandler().isCGIExtension(localPath)) {
         Logger::logInfo("isCGIExtension() is running...");
-        location.cgiPath = localPath;
-        return CgiHandler().exec(location, request);
+        return CgiHandler().exec(request, localPath, location->root);
     }
     return Response(Response::FILE, 200, "", "", localPath);
 }
@@ -520,8 +518,8 @@ const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
             break;
     }
 
-    std::cerr << "\n-------------------------RESPONSE------------------------" << std::endl;
-    std::cerr << response.str().substr(0, 500) << std::endl;
-    std::cerr << "----------------------------------------------------------" << std::endl;
+    std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
+    std::cout << response.str().substr(0, 500) << std::endl;
+    std::cout << "----------------------------------------------------------" << std::endl;
     return response.str();
 }

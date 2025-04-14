@@ -39,14 +39,14 @@ class CgiHandler {
     CgiHandler(CgiHandler const& obj);
     CgiHandler& operator=(CgiHandler const& rhs);
 
-    void prepareCgiExecutionEnv(HttpRequestParser& request, const ServerConfig::Location& location);
-    void setupCgiEnvironment(HttpRequestParser& request, const ServerConfig::Location& location);
+    void prepareCgiExecutionEnv(HttpRequestParser& request, std::string cgiPath, std::string& root);
+    void setupCgiEnvironment(HttpRequestParser& request, std::string& cgiPath);
     void executeCgiProcess(short& error_code);
     void executeCgiProcessForPost(const std::string& body, short& error_code);
     void setCgiPath(const std::string& cgi_path);
     void setCgiPid(pid_t cgi_pid);
-    Response exec(const ServerConfig::Location& location, HttpRequestParser request);
-    Response execPost(const ServerConfig::Location& location, HttpRequestParser request);
+    Response exec(HttpRequestParser request, std::string cgiPath, std::string root);
+    Response execPost(HttpRequestParser request, std::string cgiPath, std::string root);
     std::string readCgiOutput();
 
     const pid_t& getCgiPid() const;

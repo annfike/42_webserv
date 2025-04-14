@@ -29,7 +29,7 @@ public:
 
     Response(
         Type type,
-        int code = 0,
+        int code = 200,
         const std::string& message = "",
         const std::string& destination = "",
         const std::string& filePath = "",

@@ -20,7 +20,6 @@ const std::size_t BUFFER_SIZE = 4096;
 class Server {
 public:
 	Server(const std::string &config);
-	Server*& operator=(const Server& s);
 
 	void loop();
 
@@ -34,4 +33,4 @@ private:
 	void print(std::vector<Connection*>& cons);
 };
 
-#endif // SERVER_HPP
+#endif

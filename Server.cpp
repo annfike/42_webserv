@@ -50,7 +50,10 @@ void Server::parseConfig(const std::string &config)
 
 void Server::execRead(Connection& con)
 {
-	std::cout << "\n----------------- READING FROM FD=" << con.poll.fd << " -----------------" <<std::endl;
+	if (!socketManager.getConnection(con.poll.fd))
+		return;
+
+	std::cerr << "\n----------------- READING FROM FD=" << con.poll.fd << " -----------------" <<std::endl;
 	
 	// Чтение HTTP-запроса от клиента
 	std::vector<char> accumulatedData;
@@ -72,8 +75,8 @@ void Server::execRead(Connection& con)
 	}
 
 	std::cerr << "\n---> Request received: \n";
-    for (size_t i = 0; i < std::min(accumulatedData.size(), size_t(500)); i++) {
-	    std::cerr << accumulatedData[i];
+    for (size_t i = 0; i < std::min(accumulatedData.size(), (size_t)500); i++) {
+	    std::cout << accumulatedData[i];
     }
 	std::cerr << "\n---> End of Request\n\n";
 
@@ -90,7 +93,7 @@ void Server::execRead(Connection& con)
 	request.printRequest();
 
 	std::cerr << request.hostName << std::endl;
-	ServerConfig& config = con.getConfig(request.hostName);
+	const ServerConfig& config = con.getConfig(request.hostName);
 	Response response = Response::handleRequest(config, request);
 
 	const std::string http_response = response.toHttpResponse(con.keepAlive, request.getMethod() == "HEAD");
@@ -110,6 +113,9 @@ void Server::execRead(Connection& con)
 
 void Server::execWrite(Connection& con)
 {
+	if (!socketManager.getConnection(con.poll.fd))
+		return;
+
 	std::size_t toSend = std::min(con.responseHeader.size() - con.transferred, BUFFER_SIZE);
 	if (toSend != 0) 
 	{

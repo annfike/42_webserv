@@ -25,7 +25,7 @@ class SocketManager {
 		~SocketManager();
 		SocketManager& operator=(const SocketManager& s);
 		
-		void bindSocket(ServerConfig& config);
+		void bindSocket(const ServerConfig& config);
 		std::vector<Connection*> getActiveConnections();
 		void acceptConnection(Connection& socket);
 		Connection* getConnection(int fd);

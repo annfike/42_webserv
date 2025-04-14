@@ -26,10 +26,11 @@ struct pollfd getPollFd(int fd)
 	struct pollfd pfd;
 	pfd.fd = fd;
 	pfd.events = POLLIN; // | POLLOUT;
+	pfd.revents = 0;
 	return pfd;
 }
 
-void SocketManager::bindSocket(ServerConfig& config)
+void SocketManager::bindSocket(const ServerConfig& config)
 {
 	std::string ip = config.listen_IP;
 	int port = std::atoi(config.listen.c_str());
@@ -208,13 +209,14 @@ void SocketManager::closeConnection(Connection& con)
 	{
 		if (connections[j].poll.fd == con.poll.fd) 
 		{
-			//shutdown(con.poll.fd, SHUT_WR);
 			close(con.poll.fd);
 			connections.erase(connections.begin() + j);
-			
-			std::cout << std::endl;
-			std::cout << "Client disconnected" << " (fd=" << con.poll.fd << ")" << std::endl;
-			std::cout << std::endl;
+
+			std::cerr << std::endl;
+			std::cerr << "Client disconnected" << " (fd=" << con.poll.fd << ")" << std::endl;
+			std::cerr << std::endl;
+
+			print();
 
 			break;
 		}
