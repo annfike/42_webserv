@@ -28,6 +28,7 @@ class CgiHandler {
     int                                status_exit;
     std::string                        cgi_path;
     pid_t                              cgi_pid;
+    std::string                        cgi_script_path;
 
   public:
     int cgi_input_pipe[2];
@@ -39,8 +40,8 @@ class CgiHandler {
     CgiHandler(CgiHandler const& obj);
     CgiHandler& operator=(CgiHandler const& rhs);
 
-    void prepareCgiExecutionEnv(HttpRequestParser& request, std::string cgiPath, std::string& root);
-    void setupCgiEnvironment(HttpRequestParser& request, std::string& cgiPath);
+    void prepareCgiExecutionEnv(HttpRequestParser& request, std::string cgiPath, std::string root);
+    void setupCgiEnvironment(HttpRequestParser& request, std::string cgiPath);
     void executeCgiProcess(short& error_code);
     void executeCgiProcessForPost(const std::string& body, short& error_code);
     void setCgiPath(const std::string& cgi_path);

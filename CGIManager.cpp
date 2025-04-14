@@ -59,7 +59,7 @@ const std::string& CgiHandler::getCgiPath() const
 }
 
 // envs //
-void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, std::string& cgiPath)
+void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, std::string cgiPath)
 {
     std::string cgi_executable_path = std::string(cgiPath);
 
@@ -109,7 +109,9 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, std::string& cg
 		this->cgi_envs[i] = tmp.c_str();
 	}
 	this->cgi_args[0] = "/usr/bin/python3";
-	this->cgi_args[1] = (char *)cgi_executable_path.c_str();
+    std::cerr << "cgi_executable_path before assignment: " << cgi_executable_path << std::endl;
+	this->cgi_args[1] = cgi_executable_path.c_str();
+    std::cerr << "cgi_executable_path after assignment: " << this->cgi_args[1] << std::endl;
     this->cgi_args[2] = NULL;
 
     // // Вывод содержимого cgi_envs, если это char**
@@ -122,10 +124,11 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, std::string& cg
     // }
 }
 
-void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, std::string cgiPath, std::string& root)
+void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, std::string cgiPath, std::string root)
 {
     int         position;
     std::string scriptExtension;
+    this->cgi_script_path = cgiPath;
 
     scriptExtension = cgiPath.substr(cgiPath.find("."));
 
@@ -166,7 +169,7 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, std::string 
 	}
 
 	this->cgi_args[0] = "/usr/bin/python3";
-	this->cgi_args[1] = (char *)cgiPath.c_str();
+	this->cgi_args[1] = this->cgi_script_path.c_str();
     this->cgi_args[2] = NULL;
 }
 
@@ -224,6 +227,7 @@ void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_
         close(cgi_output_pipe[1]);
 
         // Записываем тело POST-запроса в stdin CGI-скрипта
+        // Use select or poll (execwrite and execread)
         ssize_t bytes_written = write(cgi_input_pipe[1], body.c_str(), body.size());
         if (bytes_written < 0) {
         }
@@ -246,6 +250,8 @@ void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_
 
 void CgiHandler::executeCgiProcess(short& error_code)
 {
+    std::cerr << "cgi_args[1] in top " << this->cgi_args[1] << std::endl;
+
     if (this->cgi_args[0] == NULL || this->cgi_args[1] == NULL) {
         error_code = 500;
         return;
@@ -276,6 +282,9 @@ void CgiHandler::executeCgiProcess(short& error_code)
         close(cgi_input_pipe[1]);
         close(cgi_output_pipe[0]);
         close(cgi_output_pipe[1]);
+
+        std::cerr << "Executing CGI script in GET: " << this->cgi_args[0] << std::endl;
+        std::cerr << "cgiPath before execve: " << this->cgi_args[1] << std::endl;
 
         this->status_exit = execve(this->cgi_args[0], (char * const *)this->cgi_args, (char * const *)this->cgi_envs);
 
@@ -365,7 +374,11 @@ Response CgiHandler::execPost(HttpRequestParser request, std::string cgiPath, st
 Response CgiHandler::exec(HttpRequestParser request, std::string cgiPath, std::string root) {
 
     setupCgiEnvironment(request, cgiPath);
+    std::cout << "cgiPath: " << cgiPath << std::endl;
+    // std::cout << "root: " << root << std::endl;
     prepareCgiExecutionEnv(request, cgiPath, root);
+    std::cout << "cgiPath2: " << cgiPath << std::endl;
+    // std::cout << "root2: " << root << std::endl;
 
     if (cgi_args[0] == NULL) {
         return Response(Response::ERROR, 500, "CGI Execution Error", "", cgiPath, "");
