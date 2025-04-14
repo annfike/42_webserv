@@ -25,7 +25,8 @@ for i in {1..1000}; do echo -e "GET / HTTP/1.1\r\nHost: yourserver.com\r\nConnec
 
 4. Siege  
 Базовый нагрузочный тест (без задержек, "benchmark" режим)
-siege -b -c 20 -t 1M http://127.0.0.1:8001   
+siege -b -c 20 -t 1M http://127.0.0.1:8001
+siege -c 10 -r 100 -d 1 -b http://127.0.0.1:8000/
 -b — benchmark mode (без задержек между запросами, максимальная нагрузка).
 -c 20 — 20 одновременных подключений.
 -t 1M — тест длится 1 минуту
