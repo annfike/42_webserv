@@ -251,7 +251,7 @@ void parseMultipartFormData(std::istream &request, const std::string &boundary, 
     }
 }
 
-Response Response::handleRequest(const ServerConfig& config, HttpRequestParser request) {
+Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& request) {
     if (request.getMethod().empty() || request.getPath().empty() || request.httpVersion.empty() || request.httpVersion.find("HTTP") != 0 ||
         (request.getMethod() != "GET" && request.getMethod() != "POST" && request.getMethod() != "DELETE" && request.getMethod() != "HEAD") || 
         (request.getMethod() == "POST" && request.getBody().empty())) {
@@ -293,13 +293,17 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
         return Response(Response::REDIRECT, status_code, "", url, redirectPath);
     }
 
-    //std::cerr << "request.getBody() " << request.getBody().data() << std::endl;
     if (request.getMethod() == "POST" && request.boundary.empty() && isBodySizeValid(config, location, request.getBody().size()))
     {
         if (CgiHandler().isCGIExtension(url)) {
             Logger::logInfo("POST isCGIExtension() is running...");
-            //location->cgiPath = url.substr(1);
-            return CgiHandler().execPost(request, url.substr(1), location->root);
+            if (CgiHandler().isCGIExtension(url))
+            {
+                std::stringstream bodys;
+                bodys.write(request.getBody().data(), request.getBody().size());
+                request.query = bodys.str();
+            }
+            return CgiHandler().exec(request, url.substr(1));
         }
     }
 
@@ -372,7 +376,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser r
 
     if (CgiHandler().isCGIExtension(localPath)) {
         Logger::logInfo("isCGIExtension() is running...");
-        return CgiHandler().exec(request, localPath, location->root);
+        return CgiHandler().exec(request, localPath);
     }
     return Response(Response::FILE, 200, "", "", localPath);
 }

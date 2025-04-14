@@ -54,31 +54,6 @@ chunk 2\r\n\
     std::istringstream requestStream(requestLine);
     requestStream >> method >> url >> httpVersion;
 
-    // Find the query parameters if any
-    size_t queryPos = url.find('?');
-    if (queryPos != std::string::npos) {
-        path = url.substr(0, queryPos);        // Путь до знака вопроса
-        query = url.substr(queryPos + 1);      // Все, что после знака вопроса - это query
-    } else {
-        path = url;  // Если query нет, то весь URL это путь
-        query = "";   // Очистим query
-    }
-
-    // Parse query parameters manually from query string (if needed)
-    if (!query.empty()) {
-        std::istringstream queryStream(query);
-        std::string param;
-        while (std::getline(queryStream, param, '&')) {
-            size_t equalsPos = param.find('=');
-            if (equalsPos != std::string::npos) {
-                std::string key = param.substr(0, equalsPos);
-                std::string value = param.substr(equalsPos + 1);
-                // Now you can do something with the key and value if needed
-                std::cout << "Query param: " << key << " = " << value << std::endl;
-            }
-        }
-    }
-
     // Parse headers
     while (pos < buffer.size()) 
     {
@@ -116,6 +91,16 @@ chunk 2\r\n\
     else if (chunked != headers.end() && chunked->second == "chunked")
     {
         decodeChunkedBody(requestStream, body);
+    }
+
+    // Find the query parameters if any
+    size_t queryPos = url.find('?');
+    if (queryPos != std::string::npos) {
+        path = url.substr(0, queryPos);        // Путь до знака вопроса
+        query = url.substr(queryPos + 1);      // Все, что после знака вопроса - это query
+    } else {
+        path = url;  // Если query нет, то весь URL это путь
+        query = "";   // Очистим query
     }
 
     it = headers.find("Host");
@@ -178,11 +163,6 @@ const std::string& HttpRequestParser::getHeader(const std::string& key) const {
 
 std::map<std::string, std::string>& HttpRequestParser::getHeaders() {
     return headers;
-}
-
-std::string &HttpRequestParser::getQuery()
-{
-    return (query);
 }
 
 std::string &HttpRequestParser::getPath()
