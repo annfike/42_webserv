@@ -458,6 +458,22 @@ const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
             file.close();
         }
     }
+    if (type == CGI)
+    {
+        // Logger::logInfo("Inside block CGI!");
+        redirectBody = cgi_output;
+        const std::string contentTypeHeader = "Content-Type: text/html";
+        size_t pos = redirectBody.find(contentTypeHeader);
+
+        if (pos != std::string::npos) {
+            size_t endPos = redirectBody.find("\r\n", pos);
+            if (endPos != std::string::npos) {
+                redirectBody.erase(pos, endPos - pos + 2);
+            }
+        }
+
+        response << "Content-Length: " << redirectBody.size() << "\r\n";
+    }
     response << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"; // Закрываем соединение после ответа
     response << "\r\n"; // Пустая строка между заголовками и телом
 
@@ -498,19 +514,7 @@ const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
             break;
         case CGI:
             {
-                // Logger::logInfo("Inside block CGI!");
-                std::string cgi_output_copy = cgi_output;
-                const std::string contentTypeHeader = "Content-Type: text/html";
-                size_t pos = cgi_output_copy.find(contentTypeHeader);
-
-                if (pos != std::string::npos) {
-                    size_t endPos = cgi_output_copy.find("\r\n", pos);
-                    if (endPos != std::string::npos) {
-                        cgi_output_copy.erase(pos, endPos - pos + 2);
-                    }
-                }
-
-                response << cgi_output_copy;
+                response << redirectBody;
                 break;
             }
         default:
