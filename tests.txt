@@ -23,6 +23,28 @@ Connection: close
 Если вы хотите автоматизировать эти запросы, используйте цикл:
 for i in {1..1000}; do echo -e "GET / HTTP/1.1\r\nHost: yourserver.com\r\nConnection: close\r\n\r\n" | telnet yourserver.com 80 & done
 
+4. Siege  
+Базовый нагрузочный тест (без задержек, "benchmark" режим)
+siege -b -c 20 -t 1M http://127.0.0.1:8001   
+-b — benchmark mode (без задержек между запросами, максимальная нагрузка).
+-c 20 — 20 одновременных подключений.
+-t 1M — тест длится 1 минуту
+Что проверяем:
+Availability > 99.5% (успешные ответы 2xx/3xx).
+Нет зависших соединений (в логах Siege не должно быть 503, Timeout и т. д.).
+Память сервера (через htop, top или ps aux | grep <сервер>).
+
+Проверка на зависшие соединения
+siege -c 10 -t 5M -i http://127.0.0.1:8001 
+Параметры:
+-i (internet mode) — случайные задержки между запросами.
+
+5. nginx
+sudo systemctl start nginx or sudo service nginx start 
+url -X POST -v http://127.0.0.1
+
+./ubuntu_tester http://127.0.0.1:8001/bbb 
+
 
 COMMANDS:
 
