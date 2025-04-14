@@ -13,12 +13,12 @@ class Connection
 		Connection() : isSocket(false),
 			ip(""), port(0), headerSent(false),
 			keepAlive(false), responseHeader(""),
-			transferred(0) {}
+			transferred(0), closed(false) {}
 		Connection(const Connection& other)
 			: configs(other.configs), poll(other.poll), isSocket(other.isSocket),
 			  ip(other.ip), port(other.port), headerSent(other.headerSent),
 			  keepAlive(other.keepAlive), responseHeader(other.responseHeader),
-			  transferred(other.transferred) {}
+			  transferred(other.transferred), closed(other.closed) {}
 
 		Connection& operator=(const Connection& other) {
 			if (this != &other) {
@@ -31,6 +31,7 @@ class Connection
 				keepAlive = other.keepAlive;
 				responseHeader = other.responseHeader;
 				transferred = other.transferred;
+				closed = other.closed;
 			}
 			return *this;
 		}
@@ -43,6 +44,7 @@ class Connection
 		bool keepAlive;
 		std::string responseHeader;
 		std::size_t transferred;
+		bool closed;
 
 		const ServerConfig&  getConfig(const std::string& serverName);
 };

@@ -108,6 +108,11 @@ std::vector<Connection*> SocketManager::getActiveConnections()
 	std::vector<struct pollfd> fds;
 	for (size_t i = 0; i < connections.size(); i++)
 	{
+		if (connections[i].closed)
+		{
+			closeConnection(connections[i]);
+			continue;
+		}
 		fds.push_back(connections[i].poll);
 	}
 
@@ -181,16 +186,16 @@ void SocketManager::closeSockets()
 
 void SocketManager::print() {
 		//std::cout << std::endl;
-		std::cout << " Fds statuses: ";
+		std::cerr << " Fds statuses: ";
 		for (size_t i = 0; i < connections.size(); i++)
 		{
 			//if (cons[i]->transferred != 0)
 				//continue;
-			std::cout << "	FD=" << connections[i].poll.fd;
-			std::cout << " E=" << connections[i].poll.events;
-			std::cout << " R=" << connections[i].poll.revents;
+			std::cerr << "	FD=" << connections[i].poll.fd;
+			std::cerr << " E=" << connections[i].poll.events;
+			std::cerr << " R=" << connections[i].poll.revents;
 		}
-		std::cout << std::endl;
+		std::cerr << std::endl;
 }
 
 Connection* SocketManager::getConnection(int fd)
@@ -209,12 +214,12 @@ void SocketManager::closeConnection(Connection& con)
 	{
 		if (connections[j].poll.fd == con.poll.fd) 
 		{
-			close(con.poll.fd);
-			connections.erase(connections.begin() + j);
-
 			std::cerr << std::endl;
 			std::cerr << "Client disconnected" << " (fd=" << con.poll.fd << ")" << std::endl;
 			std::cerr << std::endl;
+
+			close(con.poll.fd);
+			connections.erase(connections.begin() + j);
 
 			print();
 

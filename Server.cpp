@@ -48,9 +48,10 @@ void Server::parseConfig(const std::string &config)
 	}
 }
 
-void Server::execRead(Connection& con)
+void Server::execRead(Connection& con1)
 {
-	if (!socketManager.getConnection(con.poll.fd))
+	Connection& con = *socketManager.getConnection(con1.poll.fd);
+	if (con.closed)
 		return;
 
 	std::cerr << "\n----------------- READING FROM FD=" << con.poll.fd << " -----------------" <<std::endl;
@@ -69,8 +70,8 @@ void Server::execRead(Connection& con)
 		// Если ошибка при чтении или клиент закрыл соединение
 		if (bytes_read < 0)
 			std::cerr << "Error reading request body: " << strerror(errno) << std::endl;
-		socketManager.closeConnection(con);
-
+		//socketManager.closeConnection(con);
+		con.closed = true;
 		return;
 	}
 
@@ -96,10 +97,10 @@ void Server::execRead(Connection& con)
 	const ServerConfig& config = con.getConfig(request.hostName);
 	Response response = Response::handleRequest(config, request);
 
-	const std::string http_response = response.toHttpResponse(con.keepAlive, request.getMethod() == "HEAD");
-	con.responseHeader = http_response;
+	con.responseHeader = response.toHttpResponse(con.keepAlive, request.getMethod() == "HEAD");
 	con.transferred = 0;
 	con.poll.events = POLLOUT;
+	con.poll.revents = 0;
 	//con.poll.events = POLLIN | POLLOUT;
 
 	// Отправка ответа клиенту
@@ -111,11 +112,11 @@ void Server::execRead(Connection& con)
 	//	socketManager.closeConnection(con);
 }
 
-void Server::execWrite(Connection& con)
+void Server::execWrite(Connection& con1)
 {
-	if (!socketManager.getConnection(con.poll.fd))
+	Connection& con = *socketManager.getConnection(con1.poll.fd);
+	if (con.closed)
 		return;
-
 	std::size_t toSend = std::min(con.responseHeader.size() - con.transferred, BUFFER_SIZE);
 	if (toSend != 0) 
 	{
@@ -128,8 +129,12 @@ void Server::execWrite(Connection& con)
 		con.responseHeader.clear();
 		con.transferred = 0;
 		con.poll.events = POLLIN;
+		con.poll.revents = 0;
 		if (!con.keepAlive)
-			socketManager.closeConnection(con);
+		{
+			//socketManager.closeConnection(con);
+			con.closed = true;
+		}
 	}
 	/*if (!con.file)
 		return;
