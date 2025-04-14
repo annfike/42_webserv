@@ -1,33 +1,28 @@
 #include "CGIManager.hpp"
 
-CgiHandler::CgiHandler()
-{
+CgiHandler::CgiHandler() {
     this->cgi_pid     = 0;
     this->cgi_path    = "";
     this->status_exit = 0;
 }
 
-CgiHandler::CgiHandler(std::string path)
-{
+CgiHandler::CgiHandler(std::string path) {
     this->cgi_pid     = 0;
     this->cgi_path    = path;
     this->status_exit = 0;
 }
 
-CgiHandler::~CgiHandler(){}
+CgiHandler::~CgiHandler() {}
 
-CgiHandler::CgiHandler(const CgiHandler& obj)
-{
-    this->cgi_env_variables     = obj.cgi_env_variables;
-    this->cgi_path              = obj.cgi_path;
-    this->cgi_pid               = obj.cgi_pid;
-    this->status_exit           = obj.status_exit;
+CgiHandler::CgiHandler(const CgiHandler& obj) {
+    this->cgi_env_variables = obj.cgi_env_variables;
+    this->cgi_path          = obj.cgi_path;
+    this->cgi_pid           = obj.cgi_pid;
+    this->status_exit       = obj.status_exit;
 }
 
-CgiHandler& CgiHandler::operator=(const CgiHandler& obj)
-{
-    if (this != &obj)
-    {
+CgiHandler& CgiHandler::operator=(const CgiHandler& obj) {
+    if (this != &obj) {
         this->cgi_env_variables = obj.cgi_env_variables;
         this->cgi_path          = obj.cgi_path;
         this->cgi_pid           = obj.cgi_pid;
@@ -37,30 +32,17 @@ CgiHandler& CgiHandler::operator=(const CgiHandler& obj)
 }
 
 // getters //
-void CgiHandler::setCgiPid(pid_t cgi_pid)
-{
-    this->cgi_pid = cgi_pid;
-}
+void CgiHandler::setCgiPid(pid_t cgi_pid) { this->cgi_pid = cgi_pid; }
 
-void CgiHandler::setCgiPath(const std::string& cgi_path)
-{
-    this->cgi_path = cgi_path;
-}
+void CgiHandler::setCgiPath(const std::string& cgi_path) { this->cgi_path = cgi_path; }
 
 // setters //
-const pid_t& CgiHandler::getCgiPid() const
-{
-    return (this->cgi_pid);
-}
+const pid_t& CgiHandler::getCgiPid() const { return (this->cgi_pid); }
 
-const std::string& CgiHandler::getCgiPath() const
-{
-    return (this->cgi_path);
-}
+const std::string& CgiHandler::getCgiPath() const { return (this->cgi_path); }
 
 // envs //
-void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, std::string cgiPath)
-{
+void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, std::string cgiPath) {
     std::string cgi_executable_path = std::string(cgiPath);
 
     if (request.getMethod() == "POST") {
@@ -82,15 +64,16 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, std::string cgi
     this->cgi_env_variables["SERVER_PROTOCOL"]   = "HTTP/1.1";
     this->cgi_env_variables["REDIRECT_STATUS"]   = "200";
 
-    // // Перебираем заголовки HTTP-запроса и добавляем их в переменные окружения в формате CGI (например, HTTP_USER_AGENT, HTTP_COOKIE).
+    // // Перебираем заголовки HTTP-запроса и добавляем их в переменные окружения в формате CGI
+    // (например, HTTP_USER_AGENT, HTTP_COOKIE).
     std::map<std::string, std::string> request_headers = request.getHeaders();
     for (std::map<std::string, std::string>::iterator iterator = request_headers.begin();
-        iterator != request_headers.end(); ++iterator) {
+         iterator != request_headers.end(); ++iterator) {
         std::string name = iterator->first;
         for (size_t i = 0; i < name.length(); ++i) {
             name[i] = std::toupper(name[i]);
         }
-        std::string key = "HTTP_" + name;
+        std::string key        = "HTTP_" + name;
         cgi_env_variables[key] = iterator->second;
     }
 
@@ -102,16 +85,16 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, std::string cgi
 
     // Конвертируем std::map в массив строк в формате ключ=значение, который требует execve().
     // Создаем массив аргументов для CGI-программы
-	std::map<std::string, std::string>::const_iterator it = this->cgi_env_variables.begin();
-	for (int i = 0; it != this->cgi_env_variables.end(); it++, i++)
-	{
-		std::string tmp = it->first + "=" + it->second;
-		this->cgi_envs[i] = tmp.c_str();
-	}
-	this->cgi_args[0] = "/usr/bin/python3";
-    std::cerr << "cgi_executable_path before assignment: " << cgi_executable_path << std::endl;
-	this->cgi_args[1] = cgi_executable_path.c_str();
-    std::cerr << "cgi_executable_path after assignment: " << this->cgi_args[1] << std::endl;
+    this->cgi_env_storage.clear(); // На всякий случай перед заполнением
+
+    int i = 0;
+    for (std::map<std::string, std::string>::const_iterator it = this->cgi_env_variables.begin();
+         it != this->cgi_env_variables.end(); ++it, ++i) {
+        this->cgi_env_storage.push_back(it->first + "=" + it->second);
+        this->cgi_envs[i] = this->cgi_env_storage.back().c_str();
+    }
+    this->cgi_args[0] = "/usr/bin/python3";
+    this->cgi_args[1] = cgi_executable_path.c_str();
     this->cgi_args[2] = NULL;
 
     // // Вывод содержимого cgi_envs, если это char**
@@ -124,8 +107,8 @@ void CgiHandler::setupCgiEnvironment(HttpRequestParser& request, std::string cgi
     // }
 }
 
-void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, std::string cgiPath, std::string root)
-{
+void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, std::string cgiPath,
+                                        std::string root) {
     int         position;
     std::string scriptExtension;
     this->cgi_script_path = cgiPath;
@@ -137,22 +120,31 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, std::string 
     this->cgi_env_variables["CONTENT_TYPE"]      = request.getHeader("Content-Type");
     this->cgi_env_variables["GATEWAY_INTERFACE"] = "CGI/1.1";
 
-    position = findSubstringPosition(cgiPath, "cgi-bin/");
-    this->cgi_env_variables["SCRIPT_NAME"]       = cgiPath;
-    this->cgi_env_variables["SCRIPT_FILENAME"]   = ((position < 0 || (size_t) (position + 8) > cgiPath.size()) ? "" : cgiPath.substr(position + 8, cgiPath.size()));
-    this->cgi_env_variables["PATH_TRANSLATED"]   = root + (this->cgi_env_variables["PATH_INFO"] == "" ? "/" : this->cgi_env_variables["PATH_INFO"]);
-    this->cgi_env_variables["QUERY_STRING"]      = request.getQuery();
-    this->cgi_env_variables["REMOTE_ADDR"]       = request.getHeader("host");
+    position                               = findSubstringPosition(cgiPath, "cgi-bin/");
+    this->cgi_env_variables["SCRIPT_NAME"] = cgiPath;
+    this->cgi_env_variables["SCRIPT_FILENAME"] =
+        ((position < 0 || (size_t) (position + 8) > cgiPath.size())
+             ? ""
+             : cgiPath.substr(position + 8, cgiPath.size()));
+    this->cgi_env_variables["PATH_TRANSLATED"] =
+        root
+        + (this->cgi_env_variables["PATH_INFO"] == "" ? "/" : this->cgi_env_variables["PATH_INFO"]);
+    this->cgi_env_variables["QUERY_STRING"] = request.getQuery();
+    this->cgi_env_variables["REMOTE_ADDR"]  = request.getHeader("host");
 
     position = findSubstringPosition(request.getHeader("host"), ":");
-    this->cgi_env_variables["SERVER_NAME"]       = (position > 0 ? request.getHeader("host").substr(0, position) : "");
-    this->cgi_env_variables["SERVER_PORT"]       = (position > 0 ? request.getHeader("host").substr(position + 1, request.getHeader("host").size()) : "");
-    this->cgi_env_variables["REQUEST_METHOD"]    = request.getMethod();
-    this->cgi_env_variables["HTTP_COOKIE"]       = request.getHeader("cookie");
-    this->cgi_env_variables["DOCUMENT_ROOT"]     = root;
-    this->cgi_env_variables["REQUEST_URI"]       = request.getPath() + request.getQuery();
-    this->cgi_env_variables["SERVER_PROTOCOL"]   = "HTTP/1.1";
-    this->cgi_env_variables["REDIRECT_STATUS"]   = "200";
+    this->cgi_env_variables["SERVER_NAME"] =
+        (position > 0 ? request.getHeader("host").substr(0, position) : "");
+    this->cgi_env_variables["SERVER_PORT"] =
+        (position > 0
+             ? request.getHeader("host").substr(position + 1, request.getHeader("host").size())
+             : "");
+    this->cgi_env_variables["REQUEST_METHOD"]  = request.getMethod();
+    this->cgi_env_variables["HTTP_COOKIE"]     = request.getHeader("cookie");
+    this->cgi_env_variables["DOCUMENT_ROOT"]   = root;
+    this->cgi_env_variables["REQUEST_URI"]     = request.getPath() + request.getQuery();
+    this->cgi_env_variables["SERVER_PROTOCOL"] = "HTTP/1.1";
+    this->cgi_env_variables["REDIRECT_STATUS"] = "200";
 
     // // вывожу все cgi_env_variables для дебага
     // for (std::map<std::string, std::string>::iterator it = cgi_env_variables.begin();
@@ -161,20 +153,21 @@ void CgiHandler::prepareCgiExecutionEnv(HttpRequestParser& request, std::string 
     // }
 
     // Создаем массив переменных окружения для CGI-процесс
-	std::map<std::string, std::string>::const_iterator it = this->cgi_env_variables.begin();
-	for (int i = 0; it != this->cgi_env_variables.end(); it++, i++)
-	{
-		std::string tmp = it->first + "=" + it->second;
-		this->cgi_envs[i] = tmp.c_str();
-	}
+    this->cgi_env_storage.clear(); // На всякий случай перед заполнением
 
-	this->cgi_args[0] = "/usr/bin/python3";
-	this->cgi_args[1] = this->cgi_script_path.c_str();
+    int i = 0;
+    for (std::map<std::string, std::string>::const_iterator it = this->cgi_env_variables.begin();
+         it != this->cgi_env_variables.end(); ++it, ++i) {
+        this->cgi_env_storage.push_back(it->first + "=" + it->second);
+        this->cgi_envs[i] = this->cgi_env_storage.back().c_str();
+    }
+
+    this->cgi_args[0] = "/usr/bin/python3";
+    this->cgi_args[1] = this->cgi_script_path.c_str();
     this->cgi_args[2] = NULL;
 }
 
-void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_code)
-{
+void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_code) {
     if (this->cgi_args[0] == NULL || this->cgi_args[1] == NULL) {
         error_code = 500;
         return;
@@ -214,15 +207,15 @@ void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_
         std::cerr << "Args: " << std::endl;
         for (int i = 0; this->cgi_args[i] != NULL; ++i) {
             std::cerr << this->cgi_args[i] << std::endl;
-        }
- */
-        this->status_exit = execve(this->cgi_args[0], (char * const *)this->cgi_args, (char * const *)this->cgi_envs);
+        } */
+
+        this->status_exit =
+            execve(this->cgi_args[0], (char* const*) this->cgi_args, (char* const*) this->cgi_envs);
         perror("execve failed");
         exit(this->status_exit);
-    }
-    else if (this->cgi_pid > 0) {
+    } else if (this->cgi_pid > 0) {
         // exit(0);
-        
+
         close(cgi_input_pipe[0]);
         close(cgi_output_pipe[1]);
 
@@ -242,15 +235,13 @@ void CgiHandler::executeCgiProcessForPost(const std::string& body, short& error_
         } else {
             error_code = 500;
         }
-    }
-    else {
+    } else {
         error_code = 500;
     }
 }
 
-void CgiHandler::executeCgiProcess(short& error_code)
-{
-    std::cerr << "cgi_args[1] in top " << this->cgi_args[1] << std::endl;
+void CgiHandler::executeCgiProcess(short& error_code) {
+    // std::cerr << "cgi_args[1] in top " << this->cgi_args[1] << std::endl;
 
     if (this->cgi_args[0] == NULL || this->cgi_args[1] == NULL) {
         error_code = 500;
@@ -277,21 +268,26 @@ void CgiHandler::executeCgiProcess(short& error_code)
         Logger::logInfo("Fork successful.");
         dup2(cgi_input_pipe[0], STDIN_FILENO);
         dup2(cgi_output_pipe[1], STDOUT_FILENO);
-        
+
         close(cgi_input_pipe[0]);
         close(cgi_input_pipe[1]);
         close(cgi_output_pipe[0]);
         close(cgi_output_pipe[1]);
 
-        std::cerr << "Executing CGI script in GET: " << this->cgi_args[0] << std::endl;
+        /* std::cerr << "Executing CGI script in GET: " << this->cgi_args[0] << std::endl;
         std::cerr << "cgiPath before execve: " << this->cgi_args[1] << std::endl;
 
-        this->status_exit = execve(this->cgi_args[0], (char * const *)this->cgi_args, (char * const *)this->cgi_envs);
+        std::cerr << "Environment: " << std::endl;
+        for (int i = 0; this->cgi_envs[i] != NULL; ++i) {
+            std::cerr << this->cgi_envs[i] << std::endl;
+        } */
+
+        this->status_exit =
+            execve(this->cgi_args[0], (char* const*) this->cgi_args, (char* const*) this->cgi_envs);
 
         perror("execve failed");
         exit(this->status_exit);
-    }
-    else if (this->cgi_pid > 0) {
+    } else if (this->cgi_pid > 0) {
         close(cgi_input_pipe[0]);
         close(cgi_input_pipe[1]);
         close(cgi_output_pipe[1]);
@@ -303,14 +299,13 @@ void CgiHandler::executeCgiProcess(short& error_code)
         } else {
             error_code = 500;
         }
-    }
-    else {
+    } else {
         error_code = 500;
     }
 }
 
-int CgiHandler::findSubstringPosition(const std::string& inputString, const std::string& delimiter)
-{
+int CgiHandler::findSubstringPosition(const std::string& inputString,
+                                      const std::string& delimiter) {
     if (inputString.empty())
         return -1;
 
@@ -318,11 +313,10 @@ int CgiHandler::findSubstringPosition(const std::string& inputString, const std:
     return (position != std::string::npos) ? static_cast<int>(position) : -1;
 }
 
-std::string CgiHandler::readCgiOutput()
-{
-    char buffer[128];
+std::string CgiHandler::readCgiOutput() {
+    char        buffer[128];
     std::string result = "";
-    ssize_t bytesRead;
+    ssize_t     bytesRead;
 
     // Logger::logInfo("Reading from pipe...");
 
@@ -349,7 +343,9 @@ Response CgiHandler::execPost(HttpRequestParser request, std::string cgiPath, st
 
     // Получаем тело запроса как std::vector<char>
     std::vector<char> body_data = request.getBody();
-    
+    std::cout << "body in execPost " << std::string(body_data.begin(), body_data.end())
+              << std::endl;
+
     // Преобразуем std::vector<char> в std::string
     std::string requestBody(body_data.begin(), body_data.end());
 
@@ -395,17 +391,16 @@ Response CgiHandler::exec(HttpRequestParser request, std::string cgiPath, std::s
         if (cgi_output.empty()) {
             Logger::logWarning("CGI Output is empty!");
         }
-    
+
         return Response(Response::CGI, 200, "CGI Execution", "", cgiPath, cgi_output);
-    }
-    else
+    } else
         return Response(Response::ERROR, error_code, "CGI Execution Error", "", cgiPath, "");
 }
 
 bool CgiHandler::isCGIExtension(const std::string& localPath) {
     const std::string pyExtension = ".py";
 
-    size_t queryPos = localPath.find('?');
+    size_t      queryPos         = localPath.find('?');
     std::string pathWithoutQuery = localPath;
 
     if (queryPos != std::string::npos) {

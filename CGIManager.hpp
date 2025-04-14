@@ -29,6 +29,7 @@ class CgiHandler {
     std::string                        cgi_path;
     pid_t                              cgi_pid;
     std::string                        cgi_script_path;
+    std::vector<std::string>           cgi_env_storage;
 
   public:
     int cgi_input_pipe[2];
