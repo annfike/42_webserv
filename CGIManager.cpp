@@ -52,7 +52,6 @@ bool CgiHandler::executeCgiProcess(Connection& conn, short& error_code)
         conn.cgi_output_fd = cgi_output_pipe[0];
         conn.cgi_pid = pid;
         conn.cgi_ready = false;
-        conn.cgi_output.clear();
 
         conn.poll.fd = conn.cgi_output_fd;
         conn.poll.events = POLLIN;
@@ -71,12 +70,21 @@ Response CgiHandler::exec(HttpRequestParser request, std::string cgiPath, Connec
 	this->cgi_args_str[2] = request.query;
 
     short error_code = 0;
+
     if (!executeCgiProcess(conn, error_code)) {
+        std::cerr << "Error executing CGI process for " << cgiPath << std::endl;
         return Response(Response::ERROR, 500, "CGI Execution Error", "", cgiPath, "");
     }
 
-    // Пока ответ не готов, return пустой/заглушка
-    return Response(Response::CGI, 200, "Waiting for CGI", "", cgiPath, "");
+    std::cerr << "Waiting for CGI process to complete..." << std::endl;
+
+    std::string cgi_output = conn.cgi_output;
+
+    if (cgi_output.empty()) {
+        std::cerr << "CGI process completed but no output returned." << std::endl;
+        return Response(Response::ERROR, 500, "No Output from CGI", "", cgiPath, "");
+    }
+    return Response(Response::CGI, 200, "CGI Execution Complete", cgi_output, cgiPath, "");
 }
 
 
