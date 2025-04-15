@@ -49,7 +49,7 @@ void CgiHandler::executeCgiProcess(short& error_code)
         close(cgi_output_pipe[0]);
         close(cgi_output_pipe[1]);
 
-        char * cgi_args[3];
+        char * cgi_args[4];
         cgi_args[0] = (char*)cgi_args_str[0].c_str();
         cgi_args[1] = (char*)cgi_args_str[1].c_str();
         cgi_args[2] = (char*)cgi_args_str[2].c_str();
