@@ -48,9 +48,9 @@ void Server::parseConfig(const std::string &config)
 	}
 }
 
-void Server::execRead(Connection& con1)
+void Server::execRead(int fd)
 {
-	Connection& con = *socketManager.getConnection(con1.poll.fd);
+	Connection& con = *socketManager.getConnection(fd);
 	if (con.closed)
 		return;
 
@@ -75,11 +75,12 @@ void Server::execRead(Connection& con1)
 		return;
 	}
 
-	std::cerr << "\n---> Request received: \n";
+	/*std::cerr << "\n---> Request received: \n";
     for (size_t i = 0; i < std::min(accumulatedData.size(), (size_t)500); i++) {
 	    std::cout << accumulatedData[i];
     }
 	std::cerr << "\n---> End of Request\n\n";
+	*/
 
 	// Request & Response
 	HttpRequestParser request;
@@ -91,9 +92,9 @@ void Server::execRead(Connection& con1)
 
 	con.keepAlive = request.keepAlive;
 
-	request.printRequest();
+	//request.printRequest();
 
-	std::cerr << request.hostName << std::endl;
+	//std::cerr << request.hostName << std::endl;
 	const ServerConfig& config = con.getConfig(request.hostName);
 	Response response = Response::handleRequest(config, request);
 
@@ -112,9 +113,9 @@ void Server::execRead(Connection& con1)
 	//	socketManager.closeConnection(con);
 }
 
-void Server::execWrite(Connection& con1)
+void Server::execWrite(int fd)
 {
-	Connection& con = *socketManager.getConnection(con1.poll.fd);
+	Connection& con = *socketManager.getConnection(fd);
 	if (con.closed)
 		return;
 	std::size_t toSend = std::min(con.responseHeader.size() - con.transferred, BUFFER_SIZE);
@@ -195,9 +196,9 @@ void Server::loop()
 			}
 
 			if (cons[i]->poll.revents & POLLIN)
-				execRead(*cons[i]);
+				execRead(cons[i]->poll.fd);
 			if (cons[i]->poll.revents & POLLOUT)
-				execWrite(*cons[i]);
+				execWrite(cons[i]->poll.fd);
 		}
 	}
 }

@@ -185,17 +185,18 @@ void SocketManager::closeSockets()
 }
 
 void SocketManager::print() {
-		//std::cout << std::endl;
-		std::cerr << " Fds statuses: ";
-		for (size_t i = 0; i < connections.size(); i++)
-		{
-			//if (cons[i]->transferred != 0)
-				//continue;
-			std::cerr << "	FD=" << connections[i].poll.fd;
-			std::cerr << " E=" << connections[i].poll.events;
-			std::cerr << " R=" << connections[i].poll.revents;
-		}
-		std::cerr << std::endl;
+	return;
+	//std::cout << std::endl;
+	std::cerr << " Fds statuses: ";
+	for (size_t i = 0; i < connections.size(); i++)
+	{
+		//if (cons[i]->transferred != 0)
+			//continue;
+		std::cerr << "	FD=" << connections[i].poll.fd;
+		std::cerr << " E=" << connections[i].poll.events;
+		std::cerr << " R=" << connections[i].poll.revents;
+	}
+	std::cerr << std::endl;
 }
 
 Connection* SocketManager::getConnection(int fd)

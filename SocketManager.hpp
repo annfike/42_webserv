@@ -13,6 +13,7 @@
 #include <cstring>
 #include <cerrno>
 #include <vector>
+#include <deque>
 #include <fcntl.h>
 #include <algorithm>
 #include <sys/types.h>
@@ -32,7 +33,7 @@ class SocketManager {
 		void closeSockets();
 		void print();
 		void closeConnection(Connection& con);
-		std::vector<Connection> connections;
+		std::deque<Connection> connections;
 };
 
 #endif

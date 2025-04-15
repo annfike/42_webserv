@@ -79,8 +79,8 @@ bool isMethodAllowed(const ServerConfig::Location& location, const std::string& 
     // Проверяем, есть ли метод в списке разрешенных методов
     for (std::vector<std::string>::const_iterator methodIt = location.methods.begin();
         methodIt != location.methods.end(); ++methodIt) {
-        std::cerr << "method: " << method << "---";
-        std::cerr << *methodIt << "+++";
+        //std::cerr << "method: " << method << "---";
+        //std::cerr << *methodIt << "+++";
         if (*methodIt == method) {
             return true; // Метод разрешен
         }
@@ -89,9 +89,9 @@ bool isMethodAllowed(const ServerConfig::Location& location, const std::string& 
 }
 
 bool isBodySizeValid(const ServerConfig& config, const ServerConfig::Location* location, size_t size) {
-    std::cerr << "location.max_body " << location->max_body << std::endl;
-    std::cerr << "size " << size << std::endl;
-    std::cerr << "config.client_max_body_size " << config.client_max_body_size << std::endl;
+    //std::cerr << "location.max_body " << location->max_body << std::endl;
+    //std::cerr << "size " << size << std::endl;
+    //std::cerr << "config.client_max_body_size " << config.client_max_body_size << std::endl;
     if (location->max_body > 0)
         return size <= location->max_body;
     return size <= config.client_max_body_size;
@@ -99,7 +99,7 @@ bool isBodySizeValid(const ServerConfig& config, const ServerConfig::Location* l
 
 std::string findRedirectPath(const ServerConfig::Location& location) {
     //разделить 301 и гугл
-    std::cerr << "location.path: " << location.path << " redirect: " << location.redirect << "+++";
+    //std::cerr << "location.path: " << location.path << " redirect: " << location.redirect << "+++";
     if (!location.redirect.empty()) {
         return location.redirect;
     }
@@ -108,13 +108,13 @@ std::string findRedirectPath(const ServerConfig::Location& location) {
 
 std::string findLocalPath(const ServerConfig::Location& location, std::string& urlLocal) {
     std::string fullpath = location.root + urlLocal;
-    std::cerr << "/*" << fullpath << "|" << location.root << "|" << urlLocal << "|" << "*/";
+    //std::cerr << "/*" << fullpath << "|" << location.root << "|" << urlLocal << "|" << "*/";
     if (!fullpath.empty() && fullpath[0] == '/') {
         fullpath = fullpath.substr(1); // Удаляем первый символ
     }
     // Проверка существования пути
     if (access(fullpath.c_str(), F_OK) != -1) {
-        std::cout << "Path exists: " << fullpath << std::endl;
+        //std::cout << "Path exists: " << fullpath << std::endl;
         return fullpath; // Путь существует, возвращаем его
     }
     return "";
@@ -219,7 +219,7 @@ void parseMultipartFormData(std::istream &request, const std::string &boundary, 
         {
             fileName = line.substr(filenamePos + 10);
             fileName = fileName.substr(0, fileName.find('"')); // Удаляем лишнее
-            std::cerr << "filename=" << fileName;
+            //std::cerr << "filename=" << fileName;
         }
     }
 
@@ -235,7 +235,7 @@ void parseMultipartFormData(std::istream &request, const std::string &boundary, 
         // Пропускаем пустую строку перед данными
     }
 
-    std::cerr << "\nbytesRead:" << bytesRead <<", length:" << length << "\n";
+    //std::cerr << "\nbytesRead:" << bytesRead <<", length:" << length << "\n";
 
     char buffer[BUFFER_SIZE];
     while (!request.eof() && bytesRead < length) {
@@ -256,9 +256,6 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& 
         (request.getMethod() != "GET" && request.getMethod() != "POST" && request.getMethod() != "DELETE" && request.getMethod() != "HEAD") || 
         (request.getMethod() == "POST" && request.getBody().empty())) {
         // некорректный запрос
-        std::cerr << request.getMethod() << "==" << request.getPath() << "==" << request.httpVersion 
-            << "==" << (request.getMethod() == "POST" && request.getBody().empty()) << std::endl;
-        //if (request.getMethod().empty())
         return getErrorResponse(config, 400, "Bad Request");
     }
 
@@ -267,7 +264,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& 
     const ServerConfig::Location* location = getLocation(config, url, &urlLocal);
     //std::cerr << "location index: " << location_index << "+++";
     if (location == NULL) {
-        std::cerr << "nooo getlocation" << std::endl;
+        //std::cerr << "nooo getlocation" << std::endl;
         return getErrorResponse(config, 404, "Not Found");
     }
 
@@ -400,7 +397,7 @@ const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
     // Определяем Content-Type по расширению файла
     std::string contentType = "text/html"; // По умолчанию HTML
     if (type == FILE) {
-        std::cout << "TYPE!   filePath: " << filePath << std::endl;
+        //std::cout << "TYPE!   filePath: " << filePath << std::endl;
         std::string ext = filePath.substr(filePath.find_last_of('.') + 1);
         if (ext == "html" || ext == "htm") contentType = "text/html";
         else if (ext == "txt") contentType = "text/plain";
@@ -498,7 +495,7 @@ const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
                 if (filePath.empty())
                     break;
 
-                std::cout << "file reading ... " << filePath << "!" << std::endl;
+                //std::cout << "file reading ... " << filePath << "!" << std::endl;
                 std::ifstream file(filePath.c_str());
                 if (!file)
                     std::cerr << "Error reading file " << filePath << std::endl;
@@ -526,8 +523,10 @@ const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
             break;
     }
 
+    /*
     std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
     std::cout << response.str().substr(0, 500) << std::endl;
     std::cout << "----------------------------------------------------------" << std::endl;
+    */
     return response.str();
 }

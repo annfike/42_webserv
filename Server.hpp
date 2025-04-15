@@ -28,8 +28,8 @@ private:
 	SocketManager socketManager;	
 
 	void parseConfig(const std::string &config);
-	void execRead(Connection& con);
-	void execWrite(Connection& con);
+	void execRead(int fd);
+	void execWrite(int fd);
 	void print(std::vector<Connection*>& cons);
 };
 
