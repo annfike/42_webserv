@@ -80,32 +80,42 @@ void CgiHandler::executeCgiProcess(short& error_code)
     }
 }
 
-int CgiHandler::findSubstringPosition(const std::string& inputString, const std::string& delimiter) 
-{
-    if (inputString.empty())
-        return -1;
-
-    size_t position = inputString.find(delimiter);
-    return (position != std::string::npos) ? static_cast<int>(position) : -1;
-}
-
 std::string CgiHandler::readCgiOutput() {
     char        buffer[128];
     std::string result = "";
     ssize_t     bytesRead;
 
-    // Logger::logInfo("Reading from pipe...");
+    struct pollfd pfd;
+    pfd.fd = cgi_output_pipe[0];
+    pfd.events = POLLIN;
 
-    // Чтение из pipe
-    while ((bytesRead = read(cgi_output_pipe[0], buffer, sizeof(buffer))) > 0) {
-        result.append(buffer, bytesRead);
+    while (true) {
+        int pollRes = poll(&pfd, 1, 1000); // тайм-аут: 1000 мс = 1 секунда
+
+        if (pollRes == -1) {
+            Logger::logError("poll error");
+            break;
+        } else if (pollRes == 0) {
+            // Вышел по тайм-ауту
+            Logger::logWarning("CGI poll timeout: no data available to read.");
+            break;
+        } else if (pfd.revents & POLLIN) {
+            bytesRead = read(cgi_output_pipe[0], buffer, sizeof(buffer));
+            if (bytesRead > 0) {
+                result.append(buffer, bytesRead);
+            } else if (bytesRead == 0) {
+                // Конец файла
+                break;
+            } else {
+                Logger::logError("Error reading from CGI pipe");
+                break;
+            }
+        } else if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            Logger::logError("Poll error on CGI pipe: " + std::to_string(pfd.revents));
+            break;
+        }
     }
 
-    if (bytesRead == -1) {
-        perror("Error reading from pipe");
-    }
-
-    // Logger::logInfo("CGI Output: " + result);
     return result;
 }
 
@@ -115,9 +125,9 @@ Response CgiHandler::exec(HttpRequestParser request, std::string cgiPath) {
 	this->cgi_args_str[1] = cgiPath;
     this->cgi_args_str[2] = request.query;
 
-    if (cgi_args_str[0].empty()) 
-        return Response(Response::ERROR, 500, "CGI Execution Error4", "", cgiPath, "");
-    
+    if (cgi_args_str[0].empty())
+        return Response(Response::ERROR, 500, "CGI Execution Error", "", cgiPath, "");
+
     short error_code = 0;
     executeCgiProcess(error_code);
 
@@ -128,7 +138,7 @@ Response CgiHandler::exec(HttpRequestParser request, std::string cgiPath) {
         return Response(Response::CGI, 200, "CGI Execution", "", cgiPath, cgi_output);
     }
     else
-        return Response(Response::ERROR, 500, "CGI Execution Error3", "", cgiPath, "");
+        return Response(Response::ERROR, 500, "CGI Execution Error", "", cgiPath, "");
 }
 
 bool CgiHandler::isCGIExtension(const std::string& localPath) 
