@@ -251,7 +251,7 @@ void parseMultipartFormData(std::istream &request, const std::string &boundary, 
     }
 }
 
-Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& request) {
+Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& request, Connection& conn) {
     if (request.getMethod().empty() || request.getPath().empty() || request.httpVersion.empty() || request.httpVersion.find("HTTP") != 0 ||
         (request.getMethod() != "GET" && request.getMethod() != "POST" && request.getMethod() != "DELETE" && request.getMethod() != "HEAD") || 
         (request.getMethod() == "POST" && request.getBody().empty())) {
@@ -300,7 +300,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& 
                 bodys.write(request.getBody().data(), request.getBody().size());
                 request.query = bodys.str();
             }
-            return CgiHandler().exec(request, url.substr(1));
+            return CgiHandler().exec(request, url.substr(1), conn);
         }
     }
 
@@ -373,7 +373,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& 
 
     if (CgiHandler().isCGIExtension(localPath)) {
         Logger::logInfo("isCGIExtension() is running...");
-        return CgiHandler().exec(request, localPath);
+        return CgiHandler().exec(request, localPath, conn);
     }
     return Response(Response::FILE, 200, "", "", localPath);
 }

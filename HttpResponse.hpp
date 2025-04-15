@@ -37,7 +37,7 @@ public:
     );
 
     void              print() const;
-    static Response handleRequest(const ServerConfig& config, HttpRequestParser& request);
+    static Response handleRequest(const ServerConfig& config, HttpRequestParser& request, Connection& conn);
     const std::string toHttpResponse(bool keepAlive, bool noBody) const;
 
 private:

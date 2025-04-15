@@ -16,31 +16,15 @@ CgiHandler& CgiHandler::operator=(const CgiHandler& obj) {
     return (*this);
 }
 
-void CgiHandler::executeCgiProcess(short& error_code)
+bool CgiHandler::executeCgiProcess(Connection& conn, short& error_code)
 {
-    if (this->cgi_args_str[0].empty() || this->cgi_args_str[1].empty()) {
+    if (pipe(cgi_input_pipe) < 0 || pipe(cgi_output_pipe) < 0) {
         error_code = 500;
-        return;
+        return false;
     }
 
-    if (pipe(cgi_input_pipe) < 0) {
-        Logger::logError("pipe() failed");
-        error_code = 500;
-        return;
-    }
-
-    if (pipe(cgi_output_pipe) < 0) {
-        Logger::logError("pipe() failed");
-        close(cgi_input_pipe[0]);
-        close(cgi_input_pipe[1]);
-        error_code = 500;
-        return;
-    }
-
-    pid_t cgi_pid = fork();
-    
-    if (cgi_pid == 0) {
-        Logger::logInfo("Fork successful.");
+    pid_t pid = fork();
+    if (pid == 0) {
         dup2(cgi_input_pipe[0], STDIN_FILENO);
         dup2(cgi_output_pipe[1], STDOUT_FILENO);
 
@@ -49,97 +33,52 @@ void CgiHandler::executeCgiProcess(short& error_code)
         close(cgi_output_pipe[0]);
         close(cgi_output_pipe[1]);
 
-        char * cgi_args[4];
-        cgi_args[0] = (char*)cgi_args_str[0].c_str();
-        cgi_args[1] = (char*)cgi_args_str[1].c_str();
-        cgi_args[2] = (char*)cgi_args_str[2].c_str();
-        cgi_args[3] = NULL;
+        char *args[] = {
+            (char*)cgi_args_str[0].c_str(),
+            (char*)cgi_args_str[1].c_str(),
+            (char*)cgi_args_str[2].c_str(),
+            NULL
+        };
 
-        char* cgi_envs[1];
-        cgi_envs[0] = NULL;
+        char *envp[] = { NULL };
 
-        int status_exit = execve(cgi_args[0], cgi_args, cgi_envs);
-
-        perror("execve failed");
-        exit(status_exit);
-    }
-    else if (cgi_pid > 0) {
+        execve(args[0], args, envp);
+        exit(1);
+    } else if (pid > 0) {
         close(cgi_input_pipe[0]);
         close(cgi_input_pipe[1]);
         close(cgi_output_pipe[1]);
 
-        int status;
-        waitpid(cgi_pid, &status, 0);
-        if (WIFEXITED(status)) {
-            error_code = WEXITSTATUS(status);
-        } else {
-            error_code = 500;
-        }
+        conn.cgi_output_fd = cgi_output_pipe[0];
+        conn.cgi_pid = pid;
+        conn.cgi_ready = false;
+        conn.cgi_output.clear();
+
+        conn.poll.fd = conn.cgi_output_fd;
+        conn.poll.events = POLLIN;
+
+        return true;
     } else {
         error_code = 500;
+        return false;
     }
 }
 
-std::string CgiHandler::readCgiOutput() {
-    char        buffer[128];
-    std::string result = "";
-    ssize_t     bytesRead;
-
-    struct pollfd pfd;
-    pfd.fd = cgi_output_pipe[0];
-    pfd.events = POLLIN;
-
-    while (true) {
-        int pollRes = poll(&pfd, 1, 1000); // тайм-аут: 1000 мс = 1 секунда
-
-        if (pollRes == -1) {
-            Logger::logError("poll error");
-            break;
-        } else if (pollRes == 0) {
-            // Вышел по тайм-ауту
-            Logger::logWarning("CGI poll timeout: no data available to read.");
-            break;
-        } else if (pfd.revents & POLLIN) {
-            bytesRead = read(cgi_output_pipe[0], buffer, sizeof(buffer));
-            if (bytesRead > 0) {
-                result.append(buffer, bytesRead);
-            } else if (bytesRead == 0) {
-                // Конец файла
-                break;
-            } else {
-                Logger::logError("Error reading from CGI pipe");
-                break;
-            }
-        } else if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
-            Logger::logError("Poll error on CGI pipe: " + std::to_string(pfd.revents));
-            break;
-        }
-    }
-
-    return result;
-}
-
-Response CgiHandler::exec(HttpRequestParser request, std::string cgiPath) {
-
+Response CgiHandler::exec(HttpRequestParser request, std::string cgiPath, Connection& conn)
+{
     this->cgi_args_str[0] = "/usr/bin/python3";
 	this->cgi_args_str[1] = cgiPath;
-    this->cgi_args_str[2] = request.query;
-
-    if (cgi_args_str[0].empty())
-        return Response(Response::ERROR, 500, "CGI Execution Error", "", cgiPath, "");
+	this->cgi_args_str[2] = request.query;
 
     short error_code = 0;
-    executeCgiProcess(error_code);
-
-    if (error_code == 0) {
-        std::string cgi_output = readCgiOutput();
-        if (cgi_output.empty())
-            Logger::logWarning("CGI Output is empty!");
-        return Response(Response::CGI, 200, "CGI Execution", "", cgiPath, cgi_output);
-    }
-    else
+    if (!executeCgiProcess(conn, error_code)) {
         return Response(Response::ERROR, 500, "CGI Execution Error", "", cgiPath, "");
+    }
+
+    // Пока ответ не готов, return пустой/заглушка
+    return Response(Response::CGI, 200, "Waiting for CGI", "", cgiPath, "");
 }
+
 
 bool CgiHandler::isCGIExtension(const std::string& localPath) 
 {

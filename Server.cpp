@@ -96,7 +96,7 @@ void Server::execRead(int fd)
 
 	//std::cerr << request.hostName << std::endl;
 	const ServerConfig& config = con.getConfig(request.hostName);
-	Response response = Response::handleRequest(config, request);
+	Response response = Response::handleRequest(config, request, con);
 
 	con.responseHeader = response.toHttpResponse(con.keepAlive, request.getMethod() == "HEAD");
 	con.transferred = 0;
@@ -197,6 +197,33 @@ void Server::loop()
 
 			if (cons[i]->poll.revents & POLLIN)
 				execRead(cons[i]->poll.fd);
+
+			// === Обработка CGI-выхода через poll ===
+			if (!cons[i]->closed && cons[i]->cgi_output_fd > 0 && cons[i]->poll.revents & POLLIN)
+			{
+				char buffer[1024];
+				ssize_t bytes = read(cons[i]->cgi_output_fd, buffer, sizeof(buffer));
+				if (bytes > 0)
+				{
+					cons[i]->cgi_output.append(buffer, bytes);
+				}
+				else if (bytes == 0)
+				{
+					close(cons[i]->cgi_output_fd);
+					cons[i]->cgi_output_fd = -1;
+
+					waitpid(cons[i]->cgi_pid, NULL, 0);
+					cons[i]->cgi_ready = true;
+
+					cons[i]->responseHeader = "HTTP/1.1 200 OK\r\n"
+						"Content-Length: " + std::to_string(cons[i]->cgi_output.size()) + "\r\n"
+						"Content-Type: text/html\r\n\r\n" +
+						cons[i]->cgi_output;
+
+					cons[i]->poll.events = POLLOUT; // переключаемся на запись клиенту
+				}
+			}
+
 			if (cons[i]->poll.revents & POLLOUT)
 				execWrite(cons[i]->poll.fd);
 		}

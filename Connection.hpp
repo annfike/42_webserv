@@ -13,7 +13,8 @@ class Connection
 		Connection() : isSocket(false),
 			ip(""), port(0), headerSent(false),
 			keepAlive(false), responseHeader(""),
-			transferred(0), closed(false) {}
+			transferred(0), closed(false), cgi_output_fd(-1),
+			cgi_pid(-1), cgi_ready(false), cgi_output("") {}
 		Connection(const Connection& other)
 			: configs(other.configs), poll(other.poll), isSocket(other.isSocket),
 			  ip(other.ip), port(other.port), headerSent(other.headerSent),
@@ -45,6 +46,11 @@ class Connection
 		std::string responseHeader;
 		std::size_t transferred;
 		bool closed;
+
+		int cgi_output_fd;
+		pid_t cgi_pid;
+		bool cgi_ready;
+		std::string cgi_output;
 
 		const ServerConfig&  getConfig(const std::string& serverName);
 };

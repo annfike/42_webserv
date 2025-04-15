@@ -16,6 +16,7 @@
 
 // Предварительное объявление класса Response (это позволяет компилятору знать о типе Response)
 class Response;
+class Connection;
 
 #include "HttpResponse.hpp"
 #include "HttpRequest.hpp"
@@ -34,18 +35,8 @@ class CgiHandler {
     CgiHandler(CgiHandler const& obj);
     CgiHandler& operator=(CgiHandler const& rhs);
 
-    void executeCgiProcess(short& error_code);
-    void executeCgiProcessForPost(const std::string& body, short& error_code);
-    Response exec(HttpRequestParser request, std::string cgiPathroot);
-    std::string readCgiOutput();
-
-    const pid_t& getCgiPid() const;
-    const std::string& getCgiPath() const;
-
-    int findSubstringPosition(const std::string& inputString, const std::string& delimiter);
-
-    std::string extractPathInfoFromExtension(std::string& path, std::vector<std::string> extensions);
-    std::string urlDecode(std::string& path);
+    bool executeCgiProcess(Connection& conn, short& error_code);
+    Response exec(HttpRequestParser request, std::string cgiPath, Connection& conn);
     bool isCGIExtension(const std::string& localPath);
 };
 
