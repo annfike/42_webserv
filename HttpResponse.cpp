@@ -470,6 +470,9 @@ const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
 
         response << "Content-Length: " << redirectBody.size() << "\r\n";
     }
+    if (type == FOLDER_LIST) {
+        response << "Content-Length: " << message.size() << "\r\n"; // Длина содержимого
+    }
     response << "Connection: " << (keepAlive ? "keep-alive" : "close") << "\r\n"; // Закрываем соединение после ответа
     response << "\r\n"; // Пустая строка между заголовками и телом
 
@@ -518,7 +521,7 @@ const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
             break;
     }
 
-    /*
+/*    
     std::cout << "\n-------------------------RESPONSE------------------------" << std::endl;
     std::cout << response.str().substr(0, 500) << std::endl;
     std::cout << "----------------------------------------------------------" << std::endl;
