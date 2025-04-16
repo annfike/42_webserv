@@ -268,7 +268,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& 
         return getErrorResponse(config, 404, "Not Found");
     }
 
-    if (request.getMethod() != "HEAD" && !isMethodAllowed(*location, request.getMethod()))
+    if (!isMethodAllowed(*location, request.getMethod()))
         return getErrorResponse(config, 405, "Method Not Allowed");
     /* ???
     if ((request.getMethod() == "POST" && request.getBody().size()) == 0)
@@ -458,6 +458,8 @@ const std::string Response::toHttpResponse(bool keepAlive, bool noBody) const {
             response << "Content-Length: " << fileSize << "\r\n";
             file.close();
         }
+        else
+            response << "Content-Length: " << 0 << "\r\n";
     }
     if (type == CGI)
     {

@@ -111,7 +111,7 @@ std::string CgiHandler::readCgiOutput() {
                 break;
             }
         } else if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
-            Logger::logError("Poll error on CGI pipe: " + std::to_string(pfd.revents));
+            //Logger::logError("Poll error on CGI pipe: " + std::to_string(pfd.revents));
             break;
         }
     }

@@ -55,44 +55,66 @@ void Server::execRead(int fd)
 		return;
 
 	std::cerr << "\n----------------- READING FROM FD=" << con.poll.fd << " -----------------" <<std::endl;
-	
-	// Чтение HTTP-запроса от клиента
-	std::vector<char> accumulatedData;
-	char buffer[BUFFER_SIZE];
-	ssize_t bytes_read;
 
-	while ((bytes_read = recv(con.poll.fd, buffer, sizeof(buffer) - 1, 0)) > 0)
-    {
-		accumulatedData.insert(accumulatedData.end(), buffer, buffer + bytes_read); // Добавляем в накопленные данные
-	}
-	if (bytes_read <= 0 && accumulatedData.empty())
+	// Чтение HTTP-запроса от клиента
+	char buffer[BUFFER_SIZE];
+	// Добавляем в накопленные данные
+	ssize_t bytes_read = recv(con.poll.fd, buffer, sizeof(buffer), 0);
+	if (bytes_read <= 0)
 	{
 		// Если ошибка при чтении или клиент закрыл соединение
 		if (bytes_read < 0)
 			std::cerr << "Error reading request body: " << strerror(errno) << std::endl;
-		//socketManager.closeConnection(con);
 		con.closed = true;
 		return;
 	}
 
-	/*std::cerr << "\n---> Request received: \n";
-    for (size_t i = 0; i < std::min(accumulatedData.size(), (size_t)500); i++) {
-	    std::cout << accumulatedData[i];
-    }
-	std::cerr << "\n---> End of Request\n\n";
-	*/
+	con.requestBuffer.insert(con.requestBuffer.end(), buffer, buffer + bytes_read);
+	std::string tmp(con.requestBuffer.begin(), con.requestBuffer.end());
+	std::size_t rn = tmp.find("\r\n\r\n");
+	if (rn == std::string::npos)
+		return;
 
-	// Request & Response
 	HttpRequestParser request;
 	try
     {
-        request.parse(accumulatedData);  // Парсим накопленные данные
+		if (request.headers.size() == 0)
+		    request.parse(con.requestBuffer, rn);
+
+		std::map<std::string, std::string>::const_iterator it = request.headers.find("Content-Length");
+		std::map<std::string, std::string>::const_iterator chunked = request.headers.find("Transfer-Encoding");
+		if (it != request.headers.end())
+		{
+			unsigned long contentLength = std::strtoul(it->second.c_str(), NULL, 10);
+			if (contentLength != 0)
+			{
+				if (con.requestBuffer.size() < rn + 4 + contentLength)
+					return;
+				
+				request.parseBody(con.requestBuffer, rn);
+			}
+		}
+		else if (chunked != request.headers.end() && chunked->second == "chunked")
+		{
+			if (!request.parseChunkedBody(con.requestBuffer, rn))
+				return;
+		}
     }
-    catch (const std::exception& e) { return; }
+    catch (const std::exception& e) {
+		return;
+	}
 
-	con.keepAlive = request.keepAlive;
-
+	/*std::cerr << "\n---> Request received: \n";
+    for (std::size_t i = 0; i < std::min(con.requestBuffer.size(), (size_t)500); i++) {
+	    std::cout << con.requestBuffer[i];
+    }
+	std::cerr << "\n---> End of Request\n\n";
+	*/
+	
 	//request.printRequest();
+
+	con.requestBuffer.clear();
+	con.keepAlive = request.keepAlive;
 
 	//std::cerr << request.hostName << std::endl;
 	const ServerConfig& config = con.getConfig(request.hostName);
@@ -102,15 +124,6 @@ void Server::execRead(int fd)
 	con.transferred = 0;
 	con.poll.events = POLLOUT;
 	con.poll.revents = 0;
-	//con.poll.events = POLLIN | POLLOUT;
-
-	// Отправка ответа клиенту
-	//send(con.poll.fd, http_response.c_str(), http_response.size(), MSG_DONTWAIT | MSG_NOSIGNAL);
-
-	//dodelat
-	//con.keepAlive = false; // vse zapisali	
-	//if (!con.keepAlive)
-	//	socketManager.closeConnection(con);
 }
 
 void Server::execWrite(int fd)
@@ -121,9 +134,15 @@ void Server::execWrite(int fd)
 	std::size_t toSend = std::min(con.responseHeader.size() - con.transferred, BUFFER_SIZE);
 	if (toSend != 0) 
 	{
-		send(con.poll.fd, con.responseHeader.c_str() + con.transferred, toSend, MSG_DONTWAIT | MSG_NOSIGNAL);
+		ssize_t bytes_send = send(con.poll.fd, con.responseHeader.c_str() + con.transferred, toSend, MSG_DONTWAIT | MSG_NOSIGNAL);
+		if (bytes_send <= 0)
+		{
+			std::cerr << "Error sending response body: " << strerror(errno) << std::endl;
+			con.closed = true;
+			return;
+		}
+		
 		con.transferred += toSend;
-		//con.headerSent = true;
 	}
 	else
 	{
@@ -132,22 +151,8 @@ void Server::execWrite(int fd)
 		con.poll.events = POLLIN;
 		con.poll.revents = 0;
 		if (!con.keepAlive)
-		{
-			//socketManager.closeConnection(con);
 			con.closed = true;
-		}
 	}
-	/*if (!con.file)
-		return;
-
-	char buf[BUFFER_SIZE];
-	if (con.file->read(buf, sizeof(buf)) || con.file->gcount() > 0) {
-		send(con.poll.fd, buf, con.file->gcount(), MSG_DONTWAIT | MSG_NOSIGNAL);
-	}
-	else {
-		con.file->close();
-		socketManager.closeConnection(con);
-	}*/
 }
 
 void Server::print(std::vector<Connection*>& cons)

@@ -1,49 +1,11 @@
 #include "HttpRequest.hpp"
 
-HttpRequestParser::HttpRequestParser() {}
-
-void decodeChunkedBody(std::istream &request, std::vector<char>& body)
-{
-    std::string line;
-    
-    while (std::getline(request, line)) {
-        // Remove carriage return (\r) if present
-        if (!line.empty() && line[line.size() - 1] == '\r')
-            line.erase(line.size() - 1);
-
-        // Convert hex chunk size to integer
-        std::istringstream hexStream(line);
-        int chunkSize;
-        hexStream >> std::hex >> chunkSize;
-
-        // Stop if the last chunk (0) is reached
-        if (chunkSize == 0)
-            break;
-
-        // Read the chunk data
-        std::vector<char> buffer(chunkSize);
-        request.read(buffer.data(), chunkSize);
-        body.insert(body.end(), buffer.begin(), buffer.end());
-
-        // Read and discard the trailing \r\n
-        std::getline(request, line);
-    }
+HttpRequestParser::HttpRequestParser() {
+    chunkParseOffset = 0;
 }
 
-void HttpRequestParser::parse(const std::vector<char>& buffer) 
+void HttpRequestParser::parse(const std::vector<char>& buffer, std::size_t rn) 
 {
-        /*buffer = "HTTP/1.1 200 OK\r\n\
-Content-Type: text/plain\r\n\
-Transfer-Encoding: chunked\r\n\
-Connection: keep-alive\r\n\
-\r\n\
-9\r\n\
-chunk 1, \r\n\
-7\r\n\
-chunk 2\r\n\
-0\r\n\
-\r\n";*/
-
     size_t pos = 0;
     std::string line;
 
@@ -55,7 +17,7 @@ chunk 2\r\n\
     requestStream >> method >> url >> httpVersion;
 
     // Parse headers
-    while (pos < buffer.size()) 
+    while (pos < rn) 
     {
         lineEnd = std::find(buffer.begin() + pos, buffer.end(), '\n') - buffer.begin();
         std::string line(buffer.begin() + pos, buffer.begin() + lineEnd);
@@ -73,26 +35,6 @@ chunk 2\r\n\
         }
     }
 
-    // Parse body if present
-    std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
-    std::map<std::string, std::string>::const_iterator chunked = headers.find("Transfer-Encoding");
-    if (it != headers.end())
-    {
-        std::map<std::string, std::string>::const_iterator cont = headers.find("Content-Type");
-        if (cont != headers.end() && cont->second.find("multipart/form-data") != std::string::npos)
-            boundary = "--" + cont->second.substr(cont->second.find("boundary=") + 9);
-
-        contentLength = std::strtoul(it->second.c_str(), NULL, 10);
-        body.resize(contentLength);
-        body.assign(buffer.begin() + pos, buffer.begin() + pos + contentLength);
-
-        //body.push_back('\0');
-    }
-    else if (chunked != headers.end() && chunked->second == "chunked")
-    {
-        decodeChunkedBody(requestStream, body);
-    }
-
     // Find the query parameters if any
     size_t queryPos = url.find('?');
     if (queryPos != std::string::npos) {
@@ -103,7 +45,7 @@ chunk 2\r\n\
         query = "";   // Очистим query
     }
 
-    it = headers.find("Host");
+    std::map<std::string, std::string>::const_iterator it = headers.find("Host");
     hostName = "";
     if (it != headers.end()) {
         std::string host = it->second;
@@ -118,6 +60,84 @@ chunk 2\r\n\
     keepAlive = true;
     if (it != headers.end() && it->second == "close") {        
         keepAlive = false;
+    }
+}
+
+void HttpRequestParser::parseBody(const std::vector<char>& buffer, std::size_t rn)
+{
+    // Parse body if present
+    std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
+    if (it != headers.end())
+    {
+        std::map<std::string, std::string>::const_iterator cont = headers.find("Content-Type");
+        if (cont != headers.end() && cont->second.find("multipart/form-data") != std::string::npos)
+            boundary = "--" + cont->second.substr(cont->second.find("boundary=") + 9);
+
+        contentLength = std::strtoul(it->second.c_str(), NULL, 10);
+        body.resize(contentLength);
+        body.assign(buffer.begin() + rn + 4, buffer.begin() + rn + 4 + contentLength);
+    }
+}
+
+bool HttpRequestParser::parseChunkedBody(const std::vector<char>& buffer, std::size_t rn) 
+{
+    /*
+    (void)buffer1;
+        std::string s = "HTTP/1.1 200 OK\r\n\
+Content-Type: text/plain\r\n\
+Transfer-Encoding: chunked\r\n\
+Connection: keep-alive\r\n\
+\r\n\
+9\r\n\
+chunk 1, \r\n\
+7\r\n\
+chunk 2\r\n\
+0\r\n\
+\r\n";
+rn = s.find("\r\n\r\n");
+std::vector<char> buffer(s.begin(), s.end());*/
+
+    if (chunkParseOffset == 0)
+        chunkParseOffset = rn + 4;
+
+    while (true) {
+        // Найти конец строки с размером чанка
+        std::size_t lineEnd = std::search(buffer.begin() + chunkParseOffset, buffer.end(),
+                                          "\r\n", "\r\n" + 2) - buffer.begin();
+        if (lineEnd == buffer.size())
+            return false; // Ждём больше данных
+
+        std::string chunkSizeStr(buffer.begin() + chunkParseOffset, buffer.begin() + lineEnd);
+        std::istringstream hexStream(chunkSizeStr);
+        std::size_t chunkSize = 0;
+        hexStream >> std::hex >> chunkSize;
+       
+        chunkParseOffset = lineEnd + 2; // Пропустить \r\n
+
+        // Конец всех чанков
+        if (chunkSize == 0) {
+            if (buffer.size() < chunkParseOffset + 2)
+                return false;
+
+            if (!(buffer[chunkParseOffset] == '\r' && buffer[chunkParseOffset + 1] == '\n'))
+                return false;
+
+            chunkParseOffset += 2;            
+            return true;
+        }
+
+        // Проверка наличия данных чанка + \r\n
+        if (buffer.size() < chunkParseOffset + chunkSize + 2)
+            return false;
+
+        body.insert(body.end(), buffer.begin() + chunkParseOffset, buffer.begin() + chunkParseOffset + chunkSize);
+        chunkParseOffset += chunkSize;
+
+        // Проверка \r\n после чанка
+        if (!(buffer[chunkParseOffset] == '\r' && buffer[chunkParseOffset + 1] == '\n'))
+            return false;
+       
+        chunkParseOffset += 2;
     }
 }
 

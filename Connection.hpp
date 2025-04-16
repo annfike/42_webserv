@@ -18,7 +18,7 @@ class Connection
 			: configs(other.configs), poll(other.poll), isSocket(other.isSocket),
 			  ip(other.ip), port(other.port), headerSent(other.headerSent),
 			  keepAlive(other.keepAlive), responseHeader(other.responseHeader),
-			  transferred(other.transferred), closed(other.closed) {}
+			  transferred(other.transferred), closed(other.closed), requestBuffer(other.requestBuffer) {}
 
 		Connection& operator=(const Connection& other) {
 			if (this != &other) {
@@ -32,6 +32,7 @@ class Connection
 				responseHeader = other.responseHeader;
 				transferred = other.transferred;
 				closed = other.closed;
+				requestBuffer = other.requestBuffer;
 			}
 			return *this;
 		}
@@ -45,6 +46,7 @@ class Connection
 		std::string responseHeader;
 		std::size_t transferred;
 		bool closed;
+		std::vector<char> requestBuffer;
 
 		const ServerConfig&  getConfig(const std::string& serverName);
 };
