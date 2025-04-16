@@ -39,6 +39,7 @@ public:
     void              print() const;
     static Response handleRequest(const ServerConfig& config, HttpRequestParser& request);
     const std::string toHttpResponse(bool keepAlive, bool noBody) const;
+    std::string cgi_output;
 
 private:
     Type type;
@@ -46,8 +47,7 @@ private:
     std::string message;
     std::string destination;
     std::string filePath;
-    std::string urlLocal;
-    std::string cgi_output;
+    std::string urlLocal;    
 };
 
 #endif 

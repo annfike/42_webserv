@@ -115,6 +115,23 @@ void Server::execRead(int fd)
 
 	con.requestBuffer.clear();
 	con.keepAlive = request.keepAlive;
+	con.request = request;
+
+	if (CgiHandler().isCGIExtension(request.getUrl()))
+	{
+		if (request.getMethod() == "POST")
+		{
+			std::stringstream bodys;
+			bodys.write(request.getBody().data(), request.getBody().size());
+			request.query = bodys.str();
+		}
+
+		con.poll.events = 0;
+		con.poll.revents = 0;
+		con.cgiPoll.fd = CgiHandler().exec(request);
+		con.cgiPoll.events = POLLIN;
+		return;
+	}
 
 	//std::cerr << request.hostName << std::endl;
 	const ServerConfig& config = con.getConfig(request.hostName);
@@ -124,6 +141,41 @@ void Server::execRead(int fd)
 	con.transferred = 0;
 	con.poll.events = POLLOUT;
 	con.poll.revents = 0;
+}
+
+void Server::execCgiRead(int fd)
+{
+	Connection& con = *socketManager.getConnection(fd);
+	if (con.closed)
+		return;
+
+	std::cerr << "\n----------------- READING FROM FD=" << con.poll.fd << " -----------------" <<std::endl;
+
+	// Чтение HTTP-запроса от клиента
+	char buffer[BUFFER_SIZE];
+	// Добавляем в накопленные данные
+	ssize_t bytes_read = read(con.cgiPoll.fd, buffer, sizeof(buffer) - 1);
+	if (bytes_read <= 0)
+	{
+		if (bytes_read < 0)
+			std::cerr << "Error reading request body2: " << strerror(errno) << std::endl;
+		return;
+	}
+	buffer[bytes_read] = 0;
+
+	con.cgiPoll.fd = 0;
+	con.cgiPoll.events = 0;
+	con.cgiPoll.revents = 0;
+
+	const ServerConfig& config = con.getConfig(con.request.hostName);
+	Response response = Response::handleRequest(config, con.request);
+	response.cgi_output = std::string(buffer);
+
+	std::cerr << response.cgi_output;
+	con.responseHeader = response.toHttpResponse(con.keepAlive, con.request.getMethod() == "HEAD");
+	con.poll.events = POLLOUT;
+	con.poll.revents = 0;
+	con.transferred = 0;
 }
 
 void Server::execWrite(int fd)
@@ -204,6 +256,8 @@ void Server::loop()
 				execRead(cons[i]->poll.fd);
 			if (cons[i]->poll.revents & POLLOUT)
 				execWrite(cons[i]->poll.fd);
+			if (cons[i]->cgiPoll.revents & POLLIN)
+				execCgiRead(cons[i]->poll.fd);
 		}
 	}
 }

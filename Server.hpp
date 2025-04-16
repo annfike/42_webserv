@@ -14,6 +14,7 @@
 #include <cstring>
 #include <stdlib.h>
 #include <signal.h>
+#include "CGIManager.hpp"
 
 const std::size_t BUFFER_SIZE = 4096;
 
@@ -29,6 +30,7 @@ private:
 
 	void parseConfig(const std::string &config);
 	void execRead(int fd);
+	void execCgiRead(int fd);
 	void execWrite(int fd);
 	void print(std::vector<Connection*>& cons);
 };

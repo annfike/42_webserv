@@ -119,26 +119,32 @@ std::string CgiHandler::readCgiOutput() {
     return result;
 }
 
-Response CgiHandler::exec(HttpRequestParser request, std::string cgiPath) {
+int CgiHandler::exec(HttpRequestParser request) {
+    std::string cgiPath = request.getUrl().substr(1);
+    if (request.getMethod() == "GET")
+    {
+        size_t pos = cgiPath.find('?');  // Находим позицию символа '?'
+    
+        if (pos != std::string::npos) {  // Если символ '?' найден
+            cgiPath = cgiPath.substr(0, pos);  // Обрезаем строку до символа '?'
+        }
+    }
 
     this->cgi_args_str[0] = "/usr/bin/python3";
 	this->cgi_args_str[1] = cgiPath;
     this->cgi_args_str[2] = request.query;
 
     if (cgi_args_str[0].empty())
-        return Response(Response::ERROR, 500, "CGI Execution Error", "", cgiPath, "");
+        return 0;
 
     short error_code = 0;
     executeCgiProcess(error_code);
 
     if (error_code == 0) {
-        std::string cgi_output = readCgiOutput();
-        if (cgi_output.empty())
-            Logger::logWarning("CGI Output is empty!");
-        return Response(Response::CGI, 200, "CGI Execution", "", cgiPath, cgi_output);
+        return cgi_output_pipe[0];
     }
     else
-        return Response(Response::ERROR, 500, "CGI Execution Error", "", cgiPath, "");
+        return 0;
 }
 
 bool CgiHandler::isCGIExtension(const std::string& localPath) 

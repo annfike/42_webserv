@@ -25,7 +25,16 @@ struct pollfd getPollFd(int fd)
 {
 	struct pollfd pfd;
 	pfd.fd = fd;
-	pfd.events = POLLIN; // | POLLOUT;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+	return pfd;
+}
+
+struct pollfd getCgiPollFd()
+{
+	struct pollfd pfd;
+	pfd.fd = 0;
+	pfd.events = 0;
 	pfd.revents = 0;
 	return pfd;
 }
@@ -98,6 +107,7 @@ void SocketManager::bindSocket(const ServerConfig& config)
 	con.ip = ip;
 	con.port = port;
 	con.poll = getPollFd(socket_fd);
+	con.cgiPoll = getCgiPollFd();
 	con.isSocket = true;
 	con.configs.push_back(config);
 	connections.push_back(con);
@@ -114,6 +124,8 @@ std::vector<Connection*> SocketManager::getActiveConnections()
 			continue;
 		}
 		fds.push_back(connections[i].poll);
+		if (connections[i].cgiPoll.fd != 0)
+			fds.push_back(connections[i].cgiPoll);
 	}
 
 	if (fds.empty())
@@ -132,7 +144,11 @@ std::vector<Connection*> SocketManager::getActiveConnections()
 			continue;
 		
 		Connection* con = getConnection(fds[i].fd);
-		con->poll.revents = fds[i].revents;
+		if (con->poll.fd == fds[i].fd)
+			con->poll.revents = fds[i].revents;
+		if (con->cgiPoll.fd == fds[i].fd)
+			con->cgiPoll.revents = fds[i].revents;	
+
 		cons.push_back(con);
 	}
 
@@ -171,6 +187,7 @@ void SocketManager::acceptConnection(Connection& socket)
 	con.port = socket.port;
 	con.configs = socket.configs;
 	con.poll = getPollFd(client_fd);
+	con.cgiPoll = getCgiPollFd();
 	connections.push_back(con);
 }
 
@@ -204,6 +221,8 @@ Connection* SocketManager::getConnection(int fd)
 	for (size_t i = 0; i < connections.size(); i++)
 	{
 		if (connections[i].poll.fd == fd)
+			return &connections[i];
+		if (connections[i].cgiPoll.fd == fd)
 			return &connections[i];
 	}
 	return NULL;

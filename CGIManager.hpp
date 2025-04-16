@@ -36,7 +36,7 @@ class CgiHandler {
 
     void executeCgiProcess(short& error_code);
     void executeCgiProcessForPost(const std::string& body, short& error_code);
-    Response exec(HttpRequestParser request, std::string cgiPathroot);
+    int exec(HttpRequestParser request);
     std::string readCgiOutput();
 
     const pid_t& getCgiPid() const;

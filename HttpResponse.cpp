@@ -12,7 +12,7 @@ void removeQuery(std::string& url) {
 
 Response::Response(Type type, int code, const std::string& message, const std::string& destination,
                    const std::string& filePath, const std::string& cgi_output)
-    : type(type), code(code), message(message), destination(destination), filePath(filePath), cgi_output(cgi_output) {
+    : cgi_output(cgi_output), type(type), code(code), message(message), destination(destination), filePath(filePath) {
         // std::cout << "Response constructor called with type: " << type << std::endl;
     }
 
@@ -292,15 +292,8 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& 
 
     if (request.getMethod() == "POST" && request.boundary.empty() && isBodySizeValid(config, location, request.getBody().size()))
     {
-        if (CgiHandler().isCGIExtension(url)) {
-            Logger::logInfo("POST isCGIExtension() is running...");
-            if (CgiHandler().isCGIExtension(url))
-            {
-                std::stringstream bodys;
-                bodys.write(request.getBody().data(), request.getBody().size());
-                request.query = bodys.str();
-            }
-            return CgiHandler().exec(request, url.substr(1));
+        if (CgiHandler().isCGIExtension(url)) {      
+            return Response(Response::CGI, 200, "CGI Execution", "", url.substr(1));
         }
     }
 
@@ -373,7 +366,7 @@ Response Response::handleRequest(const ServerConfig& config, HttpRequestParser& 
 
     if (CgiHandler().isCGIExtension(localPath)) {
         Logger::logInfo("isCGIExtension() is running...");
-        return CgiHandler().exec(request, localPath);
+        return Response(Response::CGI, 200, "CGI Execution", "", localPath);
     }
     return Response(Response::FILE, 200, "", "", localPath);
 }
